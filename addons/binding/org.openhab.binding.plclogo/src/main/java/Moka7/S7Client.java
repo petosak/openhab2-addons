@@ -1,11 +1,23 @@
-/**
- * Copyright (c) 2013-2016 by the respective copyright holders.
- *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v10.html
- */
+/*=============================================================================|
+|  PROJECT Moka7                                                         1.0.2 |
+|==============================================================================|
+|  Copyright (C) 2013, 2016 Davide Nardella                                    |
+|  All rights reserved.                                                        |
+|==============================================================================|
+|  SNAP7 is free software: you can redistribute it and/or modify               |
+|  it under the terms of the Lesser GNU General Public License as published by |
+|  the Free Software Foundation, either version 3 of the License, or under     |
+|  EPL Eclipse Public License 1.0.                                             |
+|                                                                              |
+|  This means that you have to chose in advance which take before you import   |
+|  the library into your project.                                              |
+|                                                                              |
+|  SNAP7 is distributed in the hope that it will be useful,                    |
+|  but WITHOUT ANY WARRANTY; without even the implied warranty of              |
+|  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE whatever license you    |
+|  decide to adopt.                                                            |
+|                                                                              |
+|=============================================================================*/
 package Moka7;
 
 import java.io.DataInputStream;
@@ -21,7 +33,6 @@ import java.util.Date;
 /**
  *
  * @author Davide Nardella
- * @since 1.9.0
  */
 public class S7Client
 {
@@ -56,7 +67,6 @@ public class S7Client
     private static final int DefaultPduSizeRequested = 480;
     private static final int IsoHSize = 7; // TPKT+COTP Header Size
     private static final int MaxPduSize = DefaultPduSizeRequested+IsoHSize;
-
 
     private Socket TCPSocket;
     private final byte[] PDU = new byte[2048];
@@ -113,7 +123,7 @@ public class S7Client
         (byte)0x00, (byte)0x00, (byte)0xf0, (byte)0x00,
         (byte)0x00, (byte)0x01, (byte)0x00, (byte)0x01,
         (byte)0x00, (byte)0x1e // PDU Length Requested = HI-LO 480 bytes
-	};
+    };
 
     // S7 Read/Write Request Header (contains also ISO Header and COTP Header)
     private static final byte S7_RW[] = { // 31-35 bytes
@@ -157,11 +167,11 @@ public class S7Client
         (byte)0x41, // Block Type
         (byte)0x30, (byte)0x30, (byte)0x30, (byte)0x30, (byte)0x30, // ASCII Block Number
         (byte)0x41
-	};
+    };
 
     // SZL First telegram request
     private static final byte S7_SZL_FIRST[] = {
-	(byte)0x03, (byte)0x00, (byte)0x00, (byte)0x21,
+        (byte)0x03, (byte)0x00, (byte)0x00, (byte)0x21,
         (byte)0x02, (byte)0xf0, (byte)0x80, (byte)0x32,
         (byte)0x07, (byte)0x00, (byte)0x00,
         (byte)0x05, (byte)0x00, // Sequence out
@@ -369,7 +379,6 @@ public class S7Client
             SizeAvail=InStream.available();
             while ((SizeAvail<Size) && (!Expired) && (LastError==0))
             {
-
                 cnt++;
                 try {
                     Thread.sleep(1);
@@ -397,9 +406,9 @@ public class S7Client
 
     private int RecvPacket(byte[] Buffer, int Start, int Size)
     {
-	int BytesRead=0;
+        int BytesRead=0;
         LastError=WaitForData(Size,RecvTimeout);
-	if (LastError==0)
+        if (LastError==0)
         {
             try {
                 BytesRead = InStream.read(Buffer, Start, Size);
@@ -431,8 +440,8 @@ public class S7Client
     {
         Boolean Done = false;
         int Size = 0;
-	while ((LastError==0) && !Done)
-	{
+        while ((LastError==0) && !Done)
+        {
             // Get TPKT (4 bytes)
             RecvPacket(PDU, 0, 4);
             if (LastError==0)
@@ -465,7 +474,7 @@ public class S7Client
 
     private int ISOConnect()
     {
-    	int Size;
+        int Size;
         ISO_CR[16]=LocalTSAP_HI;
         ISO_CR[17]=LocalTSAP_LO;
         ISO_CR[20]=RemoteTSAP_HI;
@@ -567,7 +576,7 @@ public class S7Client
             _PDULength = 0;
         }
 
-	return LastError;
+        return LastError;
     }
 
     public void Disconnect()
@@ -610,19 +619,19 @@ public class S7Client
 
     public int ReadArea(int Area, int DBNumber, int Start, int Amount, byte[] Data)
     {
-	int Address;
-	int NumElements;
-	int MaxElements;
-	int TotElements;
-	int SizeRequested;
-	int Length;
-	int Offset = 0;
-	int WordSize = 1;
+        int Address;
+        int NumElements;
+        int MaxElements;
+        int TotElements;
+        int SizeRequested;
+        int Length;
+        int Offset = 0;
+        int WordSize = 1;
 
-	LastError=0;
+        LastError=0;
 
-	// If we are addressing Timers or counters the element size is 2
-	if ((Area==S7.S7AreaCT) || (Area==S7.S7AreaTM))
+        // If we are addressing Timers or counters the element size is 2
+        if ((Area==S7.S7AreaCT) || (Area==S7.S7AreaTM))
             WordSize = 2;
 
         MaxElements=(_PDULength-18) / WordSize; // 18 = Reply telegram header
@@ -695,24 +704,24 @@ public class S7Client
 
     public int WriteArea(int Area, int DBNumber, int Start, int Amount, byte[] Data)
     {
-	int Address;
-	int NumElements;
-	int MaxElements;
-	int TotElements;
-	int DataSize;
-	int IsoSize;
-	int Length;
-	int Offset = 0;
-	int WordSize = 1;
+        int Address;
+        int NumElements;
+        int MaxElements;
+        int TotElements;
+        int DataSize;
+        int IsoSize;
+        int Length;
+        int Offset = 0;
+        int WordSize = 1;
 
-	LastError=0;
+        LastError=0;
 
-	// If we are addressing Timers or counters the element size is 2
-	if ((Area==S7.S7AreaCT) || (Area==S7.S7AreaTM))
+        // If we are addressing Timers or counters the element size is 2
+        if ((Area==S7.S7AreaCT) || (Area==S7.S7AreaTM))
             WordSize = 2;
 
         MaxElements=(_PDULength-35) / WordSize; // 18 = Reply telegram header
-	TotElements=Amount;
+        TotElements=Amount;
 
         while ((TotElements>0) && (LastError==0))
         {
@@ -791,7 +800,7 @@ public class S7Client
 
     public int GetAgBlockInfo(int BlockType, int BlockNumber, S7BlockInfo Block)
     {
-    	int Length;
+        int Length;
         LastError=0;
         // Block Type
         S7_BI[30] = (byte) BlockType;
@@ -855,7 +864,7 @@ public class S7Client
 
     public int ReadSZL(int ID, int Index, S7Szl SZL)
     {
-    	int Length;
+        int Length;
         int DataSZL;
         int Offset = 0;
         boolean Done = false;
@@ -936,7 +945,6 @@ public class S7Client
 
         return LastError;
     }
-
 
     public int GetCpuInfo(S7CpuInfo Info)
     {
