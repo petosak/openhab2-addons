@@ -5,7 +5,7 @@
         xsi:schemaLocation="http://eclipse.org/smarthome/schemas/binding/v1.0.0 http://eclipse.org/smarthome/schemas/binding-1.0.0.xsd">
 
     <name>PLCLogo Binding</name>
-    <description>This is the binding for PLCLogo.</description>
+    <description>This binding provides native support for Siemens Logo! PLC.</description>
     <author>Alexander Falkenstern</author>
 
 </binding:binding>
