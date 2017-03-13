@@ -25,13 +25,13 @@
           </options>
           <required>true</required>
         </parameter>
-        <parameter name="localTSAP" type="text">
+        <parameter name="localTSAP" type="text" pattern="(0x[0-9]{4})">
           <label>Local TSAP</label>
           <description>Local TSAP of the client as hex string</description>
           <required>true</required>
           <default>0x3000</default>
         </parameter>
-        <parameter name="remoteTSAP" type="text">
+        <parameter name="remoteTSAP" type="text" pattern="(0x[0-9]{4})">
           <label>Remote TSAP</label>
           <description>Remote TSAP of the client as hex string</description>
           <required>true</required>
