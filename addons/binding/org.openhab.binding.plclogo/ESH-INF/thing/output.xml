@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<thing:thing-descriptions bindingId="plclogo"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns:thing="http://eclipse.org/smarthome/schemas/thing-description/v1.0.0"
+        xsi:schemaLocation="http://eclipse.org/smarthome/schemas/thing-description/v1.0.0 http://eclipse.org/smarthome/schemas/thing-description-1.0.0.xsd">
+
+    <!--Siemens LOGO! Digital ouput -->
+    <thing-type id="out_digital" >
+        <supported-bridge-type-refs>
+            <bridge-type-ref id="device" />
+        </supported-bridge-type-refs>
+        <label>Digital output</label>
+        <description>LOGO! digital output block</description>
+        <channels>
+            <channel id="state" typeId="switch"/>
+        </channels>
+        <config-description>
+            <parameter name="block" type="text" pattern="(Q[1-20]|M[1-64]|NQ[1-64]|VB[0-850]\.[0-7])">
+                <label>LOGO! block/memory</label>
+                <description>LOGO! block or memory address</description>
+                <required>true</required>
+            </parameter>
+        </config-description>
+    </thing-type>
+
+    <!--Siemens LOGO! Analog output -->
+    <thing-type id="out_analog" >
+        <supported-bridge-type-refs>
+            <bridge-type-ref id="device" />
+        </supported-bridge-type-refs>
+        <label>Analog output</label>
+        <description>LOGO! analog output block</description>
+        <channels>
+            <channel id="value" typeId="number"/>
+        </channels>
+        <config-description>
+            <parameter name="block" type="text" pattern="(AQ[1-8]|AM[1-64]|NAQ[1-16]|VW[0-850])">
+                <label>LOGO! block/memory</label>
+                <description>LOGO! block or memory address</description>
+                <required>true</required>
+            </parameter>
+        </config-description>
+    </thing-type>
+
+    <channel-type id="switch">
+        <item-type>Switch</item-type>
+        <label>Digital output</label>
+        <description>Digital output</description>
+    </channel-type>
+
+    <channel-type id="number">
+        <item-type>Number</item-type>
+        <label>Analog value</label>
+        <description>Analog input/output</description>
+    </channel-type>
+</thing:thing-descriptions>
+

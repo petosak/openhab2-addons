@@ -10,6 +10,7 @@ package org.openhab.binding.plclogo.handler;
 import static org.openhab.binding.plclogo.PLCLogoBindingConstants.*;
 
 import java.util.Collections;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -67,12 +68,12 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
                 }
             }
 
-            Object family = getConfigParameter(LOGO_FAMILY);
-            if (client.Connected && LOGO_FAMILIES.containsKey(family)) {
-                Integer size = LOGO_FAMILIES.get(family);
+            final Map<?, Integer> block = LOGO_MEMORY_BLOCK.get(getLogoFamily());
+            if (client.Connected && (block != null)) {
+                final Integer size = block.get("SIZE");
 
                 // read first portion directly to data, to avoid extra copy
-                final int packet = 1024;
+                final int packet = Math.min(size.intValue(), 1024);
                 int result = client.ReadArea(S7.S7AreaDB, 1, 0, packet, data);
 
                 int offset = packet;
@@ -178,6 +179,24 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
     @Override
     public void childHandlerDisposed(ThingHandler childHandler, Thing childThing) {
         super.childHandlerDisposed(childHandler, childThing);
+    }
+
+    public synchronized int read(final Thing thing) {
+        // return client.ReadArea(S7.S7AreaDB, 1, address, value.length, value);
+        return 0;
+    }
+
+    public synchronized int write(final Thing thing) {
+        // return client.WriteArea(S7.S7AreaDB, 1, address, value.length, value);
+        return 0;
+    }
+
+    public String getLogoFamily() {
+        Object family = getConfigParameter(LOGO_FAMILY);
+        if (family instanceof String) {
+            return (String) family;
+        }
+        return null;
     }
 
     private synchronized boolean connect() {
