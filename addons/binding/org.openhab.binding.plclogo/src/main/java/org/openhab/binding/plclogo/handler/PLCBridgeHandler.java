@@ -12,6 +12,7 @@ import static org.openhab.binding.plclogo.PLCLogoBindingConstants.*;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -47,6 +48,7 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
      * S7 client this bridge belongs to
      */
     private volatile S7Client client = null;
+    private volatile Map<Integer, PLCBlockHandler> handlers = new TreeMap<Integer, PLCBlockHandler>();
 
     /**
      * Buffer for read/write operations
@@ -68,9 +70,9 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
                 }
             }
 
-            final Map<?, Integer> block = LOGO_MEMORY_BLOCK.get(getLogoFamily());
-            if (client.Connected && (block != null)) {
-                final Integer size = block.get("SIZE");
+            final Map<?, Integer> memory = LOGO_MEMORY_BLOCK.get(getLogoFamily());
+            if (client.Connected && (memory != null)) {
+                final Integer size = memory.get("SIZE");
 
                 // read first portion directly to data, to avoid extra copy
                 final int packet = Math.min(size.intValue(), 1024);
@@ -82,6 +84,19 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
                     result = client.ReadArea(S7.S7AreaDB, 1, offset, buffer.length, buffer);
                     System.arraycopy(buffer, 0, data, offset, buffer.length);
                     offset = offset + buffer.length;
+                }
+
+                if (result == 0) {
+                    for (Integer address = 0; address < size; ++address) {
+                        final PLCBlockHandler handler = handlers.get(address);
+                        if (handler instanceof PLCDigitalBlockHandler) {
+                            final PLCDigitalBlockHandler block = (PLCDigitalBlockHandler) handler;
+                            block.setData(S7.GetBitAt(data, address, block.getBit()));
+                        } else if (handler instanceof PLCAnalogBlockHandler) {
+                            final PLCAnalogBlockHandler block = (PLCAnalogBlockHandler) handler;
+                            block.setData((short) S7.GetShortAt(data, address));
+                        }
+                    }
                 }
             }
         }
@@ -174,10 +189,20 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
     @Override
     public void childHandlerInitialized(ThingHandler childHandler, Thing childThing) {
         super.childHandlerInitialized(childHandler, childThing);
+        if (childHandler instanceof PLCBlockHandler) {
+            final PLCBlockHandler handler = (PLCBlockHandler) childHandler;
+            handlers.put(handler.getAddress(), handler);
+        }
     }
 
     @Override
     public void childHandlerDisposed(ThingHandler childHandler, Thing childThing) {
+        if (childHandler instanceof PLCBlockHandler) {
+            final PLCBlockHandler handler = (PLCBlockHandler) childHandler;
+            if (handlers.containsValue(handler)) {
+                handlers.values().remove(handler);
+            }
+        }
         super.childHandlerDisposed(childHandler, childThing);
     }
 

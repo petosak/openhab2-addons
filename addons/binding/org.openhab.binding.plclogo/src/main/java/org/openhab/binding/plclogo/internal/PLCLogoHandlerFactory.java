@@ -17,11 +17,9 @@ import org.eclipse.smarthome.core.thing.Thing;
 import org.eclipse.smarthome.core.thing.ThingTypeUID;
 import org.eclipse.smarthome.core.thing.binding.BaseThingHandlerFactory;
 import org.eclipse.smarthome.core.thing.binding.ThingHandler;
-import org.openhab.binding.plclogo.handler.PLCAnalogInputHandler;
-import org.openhab.binding.plclogo.handler.PLCAnalogOutputHandler;
+import org.openhab.binding.plclogo.handler.PLCAnalogBlockHandler;
 import org.openhab.binding.plclogo.handler.PLCBridgeHandler;
-import org.openhab.binding.plclogo.handler.PLCDigitalInputHandler;
-import org.openhab.binding.plclogo.handler.PLCDigitalOutputHandler;
+import org.openhab.binding.plclogo.handler.PLCDigitalBlockHandler;
 
 /**
  * The {@link PLCLogoHandlerFactory} is responsible for creating things and thing
@@ -34,10 +32,8 @@ public class PLCLogoHandlerFactory extends BaseThingHandlerFactory {
 
     public PLCLogoHandlerFactory() {
         SUPPORTED_THING_TYPES_UIDS.add(THING_TYPE_DEVICE);
-        SUPPORTED_THING_TYPES_UIDS.add(THING_TYPE_DIGITAL_INPUT);
-        SUPPORTED_THING_TYPES_UIDS.add(THING_TYPE_DIGITAL_OUTPUT);
-        SUPPORTED_THING_TYPES_UIDS.add(THING_TYPE_ANALOG_INPUT);
-        SUPPORTED_THING_TYPES_UIDS.add(THING_TYPE_ANALOG_OUTPUT);
+        SUPPORTED_THING_TYPES_UIDS.add(THING_TYPE_DIGITAL);
+        SUPPORTED_THING_TYPES_UIDS.add(THING_TYPE_ANALOG);
     }
 
     @Override
@@ -49,14 +45,10 @@ public class PLCLogoHandlerFactory extends BaseThingHandlerFactory {
     protected ThingHandler createHandler(Thing thing) {
         if (THING_TYPE_DEVICE.equals(thing.getThingTypeUID()) && (thing instanceof Bridge)) {
             return new PLCBridgeHandler((Bridge) thing);
-        } else if (THING_TYPE_DIGITAL_INPUT.equals(thing.getThingTypeUID())) {
-            return new PLCDigitalInputHandler(thing);
-        } else if (THING_TYPE_DIGITAL_OUTPUT.equals(thing.getThingTypeUID())) {
-            return new PLCDigitalOutputHandler(thing);
-        } else if (THING_TYPE_ANALOG_INPUT.equals(thing.getThingTypeUID())) {
-            return new PLCAnalogInputHandler(thing);
-        } else if (THING_TYPE_ANALOG_OUTPUT.equals(thing.getThingTypeUID())) {
-            return new PLCAnalogOutputHandler(thing);
+        } else if (THING_TYPE_DIGITAL.equals(thing.getThingTypeUID())) {
+            return new PLCDigitalBlockHandler(thing);
+        } else if (THING_TYPE_ANALOG.equals(thing.getThingTypeUID())) {
+            return new PLCAnalogBlockHandler(thing);
         }
 
         return null;

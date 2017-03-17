@@ -41,6 +41,7 @@ public abstract class PLCBlockHandler extends BaseThingHandler {
 
     @Override
     public void handleCommand(ChannelUID channelUID, Command command) {
+        logger.info("Handle command {} on channel {}", command, channelUID);
         // if(channelUID.getId().equals(CHANNEL_1)) {
         // TODO: handle command
 
@@ -95,8 +96,6 @@ public abstract class PLCBlockHandler extends BaseThingHandler {
         return address;
     }
 
-    abstract protected int getAddress(final String name);
-
     public String getBlockName() {
         Object entry = getConfigParameter(LOGO_BLOCK);
         if (entry instanceof String) {
@@ -118,8 +117,6 @@ public abstract class PLCBlockHandler extends BaseThingHandler {
         return null;
     }
 
-    abstract public boolean isBlockValid(final String name);
-
     public String getLogoFamily() {
         Bridge bridge = getBridge();
         if (bridge != null) {
@@ -128,6 +125,10 @@ public abstract class PLCBlockHandler extends BaseThingHandler {
         }
         return null;
     }
+
+    abstract protected int getAddress(final String name);
+
+    abstract protected boolean isBlockValid(final String name);
 
     private Object getConfigParameter(final String name) {
         Object result = null;

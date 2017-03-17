@@ -25,10 +25,8 @@ public class PLCLogoBindingConstants {
 
     // List of all Thing Type UIDs
     public final static ThingTypeUID THING_TYPE_DEVICE = new ThingTypeUID(BINDING_ID, "device");
-    public final static ThingTypeUID THING_TYPE_DIGITAL_INPUT = new ThingTypeUID(BINDING_ID, "in_digital");
-    public final static ThingTypeUID THING_TYPE_DIGITAL_OUTPUT = new ThingTypeUID(BINDING_ID, "out_digital");
-    public final static ThingTypeUID THING_TYPE_ANALOG_INPUT = new ThingTypeUID(BINDING_ID, "in_analog");
-    public final static ThingTypeUID THING_TYPE_ANALOG_OUTPUT = new ThingTypeUID(BINDING_ID, "out_analog");
+    public final static ThingTypeUID THING_TYPE_DIGITAL = new ThingTypeUID(BINDING_ID, "digital");
+    public final static ThingTypeUID THING_TYPE_ANALOG = new ThingTypeUID(BINDING_ID, "analog");
 
     // Bridge config properties
     public static final String LOGO_HOST = "address";
@@ -39,6 +37,8 @@ public class PLCLogoBindingConstants {
 
     // Thing config properties
     public static final String LOGO_BLOCK = "block";
+    public static final String ANALOG_CHANNEL_ID = "value";
+    public static final String DIGITAL_CHANNEL_ID = "state";
 
     // LOGO! family definitions
     public static final String LOGO_0BA7 = "0BA7";

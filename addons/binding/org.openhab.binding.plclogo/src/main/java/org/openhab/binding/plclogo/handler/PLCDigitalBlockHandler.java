@@ -7,13 +7,19 @@
  */
 package org.openhab.binding.plclogo.handler;
 
-import static org.openhab.binding.plclogo.PLCLogoBindingConstants.LOGO_MEMORY_BLOCK;
+import static org.openhab.binding.plclogo.PLCLogoBindingConstants.*;
 
 import java.util.Map;
 
+import org.eclipse.smarthome.core.library.types.OnOffType;
+import org.eclipse.smarthome.core.library.types.OpenClosedType;
+import org.eclipse.smarthome.core.thing.Channel;
+import org.eclipse.smarthome.core.thing.ChannelUID;
 import org.eclipse.smarthome.core.thing.Thing;
 import org.eclipse.smarthome.core.thing.ThingStatus;
 import org.eclipse.smarthome.core.thing.ThingStatusDetail;
+import org.eclipse.smarthome.core.thing.binding.builder.ChannelBuilder;
+import org.eclipse.smarthome.core.thing.binding.builder.ThingBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,11 +29,12 @@ import org.slf4j.LoggerFactory;
  *
  * @author Alexander Falkenstern - Initial contribution
  */
-public abstract class PLCDigitalBlockHandler extends PLCBlockHandler {
+public class PLCDigitalBlockHandler extends PLCBlockHandler {
 
     private final Logger logger = LoggerFactory.getLogger(PLCDigitalBlockHandler.class);
 
     private int bit = -1;
+    int oldValue = Integer.MAX_VALUE;
 
     public PLCDigitalBlockHandler(Thing thing) {
         super(thing);
@@ -36,7 +43,23 @@ public abstract class PLCDigitalBlockHandler extends PLCBlockHandler {
 
     @Override
     public void initialize() {
-        if (isBlockValid(getBlockName())) {
+        final String INPUT = "input";
+        final String OUTPUT = "output";
+
+        final String name = getBlockName();
+        if (isBlockValid(name)) {
+            String text = name.startsWith("I") || name.startsWith("NI") ? INPUT : OUTPUT;
+
+            final ChannelUID UID = new ChannelUID(getThing().getUID(), DIGITAL_CHANNEL_ID);
+            ChannelBuilder channel = ChannelBuilder.create(UID, text.equals(INPUT) ? "Contact" : "Switch");
+            channel = channel.withLabel(name);
+            channel = channel.withDescription("Digital " + text);
+
+            ThingBuilder thing = editThing();
+            text = text.substring(0, 1).toUpperCase() + text.substring(1);
+            thing = thing.withLabel(getBridge().getLabel() + ": " + text + " " + name);
+            thing = thing.withChannel(channel.build());
+            updateThing(thing.build());
             super.initialize();
         } else {
             final String message = "Can not initialize LOGO! block. Please check blocks.";
@@ -51,30 +74,23 @@ public abstract class PLCDigitalBlockHandler extends PLCBlockHandler {
     public void dispose() {
         logger.debug("Dispose LOGO! digital handler.");
         super.dispose();
+
+        oldValue = Integer.MAX_VALUE;
         bit = -1;
     }
 
-    @Override
-    protected int getAddress(final String name) {
-        int address = -1;
-        if (isBlockValid(name)) {
-            int base = 0;
-
-            final String block = name.split("\\.")[0];
-            final Map<?, Integer> family = LOGO_MEMORY_BLOCK.get(getLogoFamily());
-            if (Character.isDigit(block.charAt(1))) {
-                base = family.get(block.substring(0, 1));
-                address = Integer.parseInt(block.substring(1));
-            } else if (Character.isDigit(block.charAt(2))) {
-                base = family.get(block.substring(0, 2));
-                address = Integer.parseInt(block.substring(2));
+    public void setData(final boolean data) {
+        if (oldValue != (data ? 1 : 0)) {
+            final Channel channel = thing.getChannel(DIGITAL_CHANNEL_ID);
+            if (channel.getAcceptedItemType().equals("Contact")) {
+                updateState(channel.getUID(), data ? OpenClosedType.OPEN : OpenClosedType.CLOSED);
+            } else {
+                updateState(channel.getUID(), data ? OnOffType.ON : OnOffType.OFF);
             }
-
-            if (base != 0) { // Only VB/VW memory ranges are 0 based
-                address = base + (address - 1) / 8;
-            }
+            logger.debug("Thing: {}, channel {}: {}", thing.getUID(), channel.getUID(), data);
         }
-        return address;
+
+        oldValue = data ? 1 : 0;
     }
 
     public int getBit() {
@@ -102,11 +118,36 @@ public abstract class PLCDigitalBlockHandler extends PLCBlockHandler {
     }
 
     @Override
-    public boolean isBlockValid(final String name) {
+    protected int getAddress(final String name) {
+        int address = -1;
+        if (isBlockValid(name)) {
+            int base = 0;
+
+            final String block = name.split("\\.")[0];
+            final Map<?, Integer> family = LOGO_MEMORY_BLOCK.get(getLogoFamily());
+            if (Character.isDigit(block.charAt(1))) {
+                base = family.get(block.substring(0, 1));
+                address = Integer.parseInt(block.substring(1));
+            } else if (Character.isDigit(block.charAt(2))) {
+                base = family.get(block.substring(0, 2));
+                address = Integer.parseInt(block.substring(2));
+            }
+
+            if (base != 0) { // Only VB/VW memory ranges are 0 based
+                address = base + (address - 1) / 8;
+            }
+        }
+        return address;
+    }
+
+    @Override
+    protected boolean isBlockValid(final String name) {
         boolean valid = false;
         if (name.length() >= 2) {
-            valid = name.startsWith("M");
-            if (!valid && name.startsWith("VB")) {
+            valid = valid || name.startsWith("I") || name.startsWith("NI"); // Inputs
+            valid = valid || name.startsWith("Q") || name.startsWith("NQ"); // Outputs
+            valid = valid || name.startsWith("M"); // Markers
+            if (!valid && name.startsWith("VB")) { // Memory block
                 final String[] parts = name.split("\\.");
                 if (parts.length == 2) {
                     final int bit = Integer.parseInt(parts[1]);

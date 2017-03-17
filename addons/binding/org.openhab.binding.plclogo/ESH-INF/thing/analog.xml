@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<thing:thing-descriptions bindingId="plclogo"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns:thing="http://eclipse.org/smarthome/schemas/thing-description/v1.0.0"
+        xsi:schemaLocation="http://eclipse.org/smarthome/schemas/thing-description/v1.0.0 http://eclipse.org/smarthome/schemas/thing-description-1.0.0.xsd">
+
+    <!--Siemens LOGO! Analog -->
+    <thing-type id="analog" >
+        <supported-bridge-type-refs>
+            <bridge-type-ref id="device" />
+        </supported-bridge-type-refs>
+        <label>Analog block</label>
+        <description>LOGO! analog input/output block</description>
+        <config-description>
+            <parameter name="block" type="text" pattern="AI[1-8]|NAI[1-32]|AQ[1-8]|NAQ[1-16]|AM[1-64]|VW[0-850]{1,3}"> 
+                <label>LOGO! block/memory</label>
+                <description>LOGO! block or memory address</description>
+                <required>true</required>
+            </parameter>
+        </config-description>
+    </thing-type>
+</thing:thing-descriptions>
+
