@@ -38,6 +38,9 @@ public class PLCAnalogBlockHandler extends PLCBlockHandler {
         super(thing);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void initialize() {
         final String INPUT = "input";
@@ -45,7 +48,8 @@ public class PLCAnalogBlockHandler extends PLCBlockHandler {
 
         final String name = getBlockName();
         if (isBlockValid(name)) {
-            String text = name.startsWith("AI") || name.startsWith("NAI") ? INPUT : OUTPUT;
+            final String kind = getBlockKind();
+            String text = kind.equals("AI") || kind.equals("NAI") ? INPUT : OUTPUT;
 
             final ChannelUID UID = new ChannelUID(getThing().getUID(), ANALOG_CHANNEL_ID);
             ChannelBuilder channel = ChannelBuilder.create(UID, "Number");
@@ -89,23 +93,24 @@ public class PLCAnalogBlockHandler extends PLCBlockHandler {
     protected int getAddress(final String name) {
         int address = -1;
         if (isBlockValid(name)) {
-            int base = 0;
-
             final String block = name.split("\\.")[0];
-            final Map<?, Integer> family = LOGO_MEMORY_BLOCK.get(getLogoFamily());
             if (Character.isDigit(block.charAt(2))) {
-                base = family.get(block.substring(0, 2));
                 address = Integer.parseInt(block.substring(2));
             } else if (Character.isDigit(block.charAt(3))) {
-                base = family.get(block.substring(0, 3));
                 address = Integer.parseInt(block.substring(3));
             }
 
+            final int base = getBase(name);
             if (base != 0) { // Only VB/VW memory ranges are 0 based
                 address = base + (address - 1) * 2;
             }
         }
         return address;
+    }
+
+    @Override
+    protected int getBit(final String name) {
+        return 0;
     }
 
     @Override
@@ -121,5 +126,17 @@ public class PLCAnalogBlockHandler extends PLCBlockHandler {
             }
         }
         return valid;
+    }
+
+    private int getBase(final String name) {
+        int base = 0;
+        final String block = name.split("\\.")[0];
+        final Map<?, Integer> family = LOGO_MEMORY_BLOCK.get(getLogoFamily());
+        if (Character.isDigit(block.charAt(2))) {
+            base = family.get(block.substring(0, 2));
+        } else if (Character.isDigit(block.charAt(3))) {
+            base = family.get(block.substring(0, 3));
+        }
+        return base;
     }
 }

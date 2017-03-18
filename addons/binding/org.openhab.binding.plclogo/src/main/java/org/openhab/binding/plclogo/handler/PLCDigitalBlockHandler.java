@@ -33,14 +33,15 @@ public class PLCDigitalBlockHandler extends PLCBlockHandler {
 
     private final Logger logger = LoggerFactory.getLogger(PLCDigitalBlockHandler.class);
 
-    private int bit = -1;
     int oldValue = Integer.MAX_VALUE;
 
     public PLCDigitalBlockHandler(Thing thing) {
         super(thing);
-        bit = -1;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void initialize() {
         final String INPUT = "input";
@@ -48,7 +49,8 @@ public class PLCDigitalBlockHandler extends PLCBlockHandler {
 
         final String name = getBlockName();
         if (isBlockValid(name)) {
-            String text = name.startsWith("I") || name.startsWith("NI") ? INPUT : OUTPUT;
+            final String kind = getBlockKind();
+            String text = kind.equals("I") || kind.equals("NI") ? INPUT : OUTPUT;
 
             final ChannelUID UID = new ChannelUID(getThing().getUID(), DIGITAL_CHANNEL_ID);
             ChannelBuilder channel = ChannelBuilder.create(UID, text.equals(INPUT) ? "Contact" : "Switch");
@@ -76,14 +78,13 @@ public class PLCDigitalBlockHandler extends PLCBlockHandler {
         super.dispose();
 
         oldValue = Integer.MAX_VALUE;
-        bit = -1;
     }
 
     public void setData(final boolean data) {
         if (oldValue != (data ? 1 : 0)) {
             final Channel channel = thing.getChannel(DIGITAL_CHANNEL_ID);
             if (channel.getAcceptedItemType().equals("Contact")) {
-                updateState(channel.getUID(), data ? OpenClosedType.OPEN : OpenClosedType.CLOSED);
+                updateState(channel.getUID(), data ? OpenClosedType.CLOSED : OpenClosedType.OPEN);
             } else {
                 updateState(channel.getUID(), data ? OnOffType.ON : OnOffType.OFF);
             }
@@ -93,21 +94,37 @@ public class PLCDigitalBlockHandler extends PLCBlockHandler {
         oldValue = data ? 1 : 0;
     }
 
-    public int getBit() {
-        final String name = getBlockName();
-        if ((bit == -1) && isBlockValid(name)) {
-            int base = 0;
+    @Override
+    protected int getAddress(final String name) {
+        int address = -1;
+        if (isBlockValid(name)) {
+            final String block = name.split("\\.")[0];
+            if (Character.isDigit(block.charAt(1))) {
+                address = Integer.parseInt(block.substring(1));
+            } else if (Character.isDigit(block.charAt(2))) {
+                address = Integer.parseInt(block.substring(2));
+            }
 
+            final int base = getBase(name);
+            if (base != 0) { // Only VB/VW memory ranges are 0 based
+                address = base + (address - 1) / 8;
+            }
+        }
+        return address;
+    }
+
+    @Override
+    protected int getBit(final String name) {
+        int bit = -1;
+        if (isBlockValid(name)) {
             final String[] parts = name.split("\\.");
-            final Map<?, Integer> family = LOGO_MEMORY_BLOCK.get(getLogoFamily());
             if (Character.isDigit(parts[0].charAt(1))) {
-                base = family.get(parts[0].substring(0, 1));
                 bit = Integer.parseInt(parts[0].substring(1));
             } else if (Character.isDigit(parts[0].charAt(2))) {
-                base = family.get(parts[0].substring(0, 2));
                 bit = Integer.parseInt(parts[0].substring(2));
             }
 
+            final int base = getBase(name);
             if (base != 0) { // Only VB/VW memory ranges are 0 based
                 bit = (bit - 1) % 8;
             } else {
@@ -115,29 +132,6 @@ public class PLCDigitalBlockHandler extends PLCBlockHandler {
             }
         }
         return bit;
-    }
-
-    @Override
-    protected int getAddress(final String name) {
-        int address = -1;
-        if (isBlockValid(name)) {
-            int base = 0;
-
-            final String block = name.split("\\.")[0];
-            final Map<?, Integer> family = LOGO_MEMORY_BLOCK.get(getLogoFamily());
-            if (Character.isDigit(block.charAt(1))) {
-                base = family.get(block.substring(0, 1));
-                address = Integer.parseInt(block.substring(1));
-            } else if (Character.isDigit(block.charAt(2))) {
-                base = family.get(block.substring(0, 2));
-                address = Integer.parseInt(block.substring(2));
-            }
-
-            if (base != 0) { // Only VB/VW memory ranges are 0 based
-                address = base + (address - 1) / 8;
-            }
-        }
-        return address;
     }
 
     @Override
@@ -156,5 +150,17 @@ public class PLCDigitalBlockHandler extends PLCBlockHandler {
             }
         }
         return valid;
+    }
+
+    private int getBase(final String name) {
+        int base = 0;
+        final String block = name.split("\\.")[0];
+        final Map<?, Integer> family = LOGO_MEMORY_BLOCK.get(getLogoFamily());
+        if (Character.isDigit(block.charAt(1))) {
+            base = family.get(block.substring(0, 1));
+        } else if (Character.isDigit(block.charAt(2))) {
+            base = family.get(block.substring(0, 2));
+        }
+        return base;
     }
 }

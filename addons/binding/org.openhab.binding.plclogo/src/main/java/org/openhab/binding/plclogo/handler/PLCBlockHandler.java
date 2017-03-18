@@ -33,10 +33,10 @@ public abstract class PLCBlockHandler extends BaseThingHandler {
     private final Logger logger = LoggerFactory.getLogger(PLCBlockHandler.class);
 
     private int address = -1;
+    private int bit = -1;
 
     public PLCBlockHandler(Thing thing) {
         super(thing);
-        address = -1;
     }
 
     /**
@@ -81,6 +81,7 @@ public abstract class PLCBlockHandler extends BaseThingHandler {
         logger.debug("Dispose LOGO! common block handler.");
         super.dispose();
         address = -1;
+        bit = -1;
     }
 
     public int getAddress() {
@@ -89,6 +90,14 @@ public abstract class PLCBlockHandler extends BaseThingHandler {
             address = getAddress(name);
         }
         return address;
+    }
+
+    public int getBit() {
+        final String name = getBlockName();
+        if ((bit == -1) && isBlockValid(name)) {
+            bit = getBit(name);
+        }
+        return bit;
     }
 
     public String getBlockName() {
@@ -122,6 +131,8 @@ public abstract class PLCBlockHandler extends BaseThingHandler {
     }
 
     abstract protected int getAddress(final String name);
+
+    abstract protected int getBit(final String name);
 
     abstract protected boolean isBlockValid(final String name);
 

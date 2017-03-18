@@ -125,13 +125,14 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
             final PLCBlockHandler handler = (PLCBlockHandler) thingRegistry.get(thingUID).getHandler();
             final int address = handler.getAddress();
 
-            wLock.lock();
             if (DIGITAL_CHANNEL_ID.equals(channelUID.getId())) {
                 if (command instanceof OnOffType) {
                     final OnOffType state = (OnOffType) command;
-                    final PLCDigitalBlockHandler digital = (PLCDigitalBlockHandler) handler;
-                    S7.SetBitAt(data, address, digital.getBit(), state == OnOffType.ON);
+
+                    wLock.lock();
+                    S7.SetBitAt(data, address, handler.getBit(), state == OnOffType.ON);
                     int result = client.WriteArea(S7.S7AreaDB, 1, address, 1, data);
+                    wLock.unlock();
 
                     final String value = Integer.toBinaryString((data[address] & 0xFF) + 0x100).substring(1);
                     logger.debug("Wrote [{}] for channel {} with result {} ", value, channelUID, result);
@@ -144,8 +145,11 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
             } else if (ANALOG_CHANNEL_ID.equals(channelUID.getId())) {
                 if (command instanceof DecimalType) {
                     final DecimalType state = (DecimalType) command;
+
+                    wLock.lock();
                     S7.SetShortAt(data, address, (short) state.intValue());
                     int result = client.WriteArea(S7.S7AreaDB, 1, address, 2, data);
+                    wLock.unlock();
 
                     final String value = Integer.toString(ByteBuffer.wrap(data, address, 2).getInt());
                     logger.debug("Wrote [{}] for channel {} with result {} ", value, channelUID, result);
@@ -156,7 +160,6 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
                 // updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.COMMUNICATION_ERROR,
                 // "Could not control device at IP address x.x.x.x");
             }
-            wLock.unlock();
 
             // if (command instanceof RefreshType) {
             // forceRefresh = true;
