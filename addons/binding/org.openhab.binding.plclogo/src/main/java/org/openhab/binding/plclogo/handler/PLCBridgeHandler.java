@@ -9,20 +9,26 @@ package org.openhab.binding.plclogo.handler;
 
 import static org.openhab.binding.plclogo.PLCLogoBindingConstants.*;
 
+import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.eclipse.smarthome.config.core.Configuration;
+import org.eclipse.smarthome.core.library.types.DecimalType;
+import org.eclipse.smarthome.core.library.types.OnOffType;
 import org.eclipse.smarthome.core.thing.Bridge;
 import org.eclipse.smarthome.core.thing.ChannelUID;
 import org.eclipse.smarthome.core.thing.Thing;
 import org.eclipse.smarthome.core.thing.ThingStatus;
 import org.eclipse.smarthome.core.thing.ThingStatusDetail;
 import org.eclipse.smarthome.core.thing.ThingTypeUID;
+import org.eclipse.smarthome.core.thing.ThingUID;
 import org.eclipse.smarthome.core.thing.binding.BaseBridgeHandler;
 import org.eclipse.smarthome.core.thing.binding.ThingHandler;
 import org.eclipse.smarthome.core.types.Command;
@@ -54,6 +60,9 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
      * Buffer for read/write operations
      */
     private byte data[] = new byte[2048];
+    private final ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
+    private final Lock rLock = rwLock.readLock();
+    private final Lock wLock = rwLock.writeLock();
 
     private ScheduledFuture<?> job = null;
     private Runnable reader = new Runnable() {
@@ -73,10 +82,10 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
             final Map<?, Integer> memory = LOGO_MEMORY_BLOCK.get(getLogoFamily());
             if (client.Connected && (memory != null)) {
                 final Integer size = memory.get("SIZE");
-
-                // read first portion directly to data, to avoid extra copy
                 final int packet = Math.min(size.intValue(), 1024);
-                int result = client.ReadArea(S7.S7AreaDB, 1, 0, packet, data);
+
+                rLock.lock();
+                int result = client.ReadArea(S7.S7AreaDB, 1, 0, packet, data); // read first portion directly to data
 
                 int offset = packet;
                 while ((result == 0) && (offset < size.intValue())) {
@@ -85,6 +94,7 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
                     System.arraycopy(buffer, 0, data, offset, buffer.length);
                     offset = offset + buffer.length;
                 }
+                rLock.unlock();
 
                 if (result == 0) {
                     for (Integer address = 0; address < size; ++address) {
@@ -106,17 +116,53 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
         super(bridge);
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void handleRemoval() {
-        super.handleRemoval();
-    }
-
     @Override
     public void handleCommand(ChannelUID channelUID, Command command) {
-        logger.info("Handle command {} on channel {}", command, channelUID);
+        logger.debug("Handle command {} on channel {}", command, channelUID);
+
+        final ThingUID thingUID = channelUID.getThingUID();
+        if ((thingUID != null) && (thingRegistry != null)) {
+            final PLCBlockHandler handler = (PLCBlockHandler) thingRegistry.get(thingUID).getHandler();
+            final int address = handler.getAddress();
+
+            wLock.lock();
+            if (DIGITAL_CHANNEL_ID.equals(channelUID.getId())) {
+                if (command instanceof OnOffType) {
+                    final OnOffType state = (OnOffType) command;
+                    final PLCDigitalBlockHandler digital = (PLCDigitalBlockHandler) handler;
+                    S7.SetBitAt(data, address, digital.getBit(), state == OnOffType.ON);
+                    int result = client.WriteArea(S7.S7AreaDB, 1, address, 1, data);
+
+                    final String value = Integer.toBinaryString((data[address] & 0xFF) + 0x100).substring(1);
+                    logger.debug("Wrote [{}] for channel {} with result {} ", value, channelUID, result);
+                }
+
+                // Note: if communication with thing fails for some reason,
+                // indicate that by setting the status with detail information
+                // updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.COMMUNICATION_ERROR,
+                // "Could not control device at IP address x.x.x.x");
+            } else if (ANALOG_CHANNEL_ID.equals(channelUID.getId())) {
+                if (command instanceof DecimalType) {
+                    final DecimalType state = (DecimalType) command;
+                    S7.SetShortAt(data, address, (short) state.intValue());
+                    int result = client.WriteArea(S7.S7AreaDB, 1, address, 2, data);
+
+                    final String value = Integer.toString(ByteBuffer.wrap(data, address, 2).getInt());
+                    logger.debug("Wrote [{}] for channel {} with result {} ", value, channelUID, result);
+                }
+
+                // Note: if communication with thing fails for some reason,
+                // indicate that by setting the status with detail information
+                // updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.COMMUNICATION_ERROR,
+                // "Could not control device at IP address x.x.x.x");
+            }
+            wLock.unlock();
+
+            // if (command instanceof RefreshType) {
+            // forceRefresh = true;
+            // maxCubeBridge.handleCommand(channelUID, command);
+            // }
+        }
     }
 
     /**
@@ -204,16 +250,6 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
             }
         }
         super.childHandlerDisposed(childHandler, childThing);
-    }
-
-    public synchronized int read(final Thing thing) {
-        // return client.ReadArea(S7.S7AreaDB, 1, address, value.length, value);
-        return 0;
-    }
-
-    public synchronized int write(final Thing thing) {
-        // return client.WriteArea(S7.S7AreaDB, 1, address, value.length, value);
-        return 0;
     }
 
     public String getLogoFamily() {
