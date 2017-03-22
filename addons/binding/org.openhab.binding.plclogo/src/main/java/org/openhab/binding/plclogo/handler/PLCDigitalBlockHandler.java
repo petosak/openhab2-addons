@@ -52,16 +52,19 @@ public class PLCDigitalBlockHandler extends PLCBlockHandler {
             final String kind = getBlockKind();
             String text = kind.equals("I") || kind.equals("NI") ? INPUT : OUTPUT;
 
-            final ChannelUID UID = new ChannelUID(getThing().getUID(), DIGITAL_CHANNEL_ID);
-            ChannelBuilder channel = ChannelBuilder.create(UID, text.equals(INPUT) ? "Contact" : "Switch");
-            channel = channel.withLabel(name);
-            channel = channel.withDescription("Digital " + text);
-
-            ThingBuilder thing = editThing();
+            ThingBuilder builder = editThing();
             text = text.substring(0, 1).toUpperCase() + text.substring(1);
-            thing = thing.withLabel(getBridge().getLabel() + ": " + text + " " + name);
-            thing = thing.withChannel(channel.build());
-            updateThing(thing.build());
+            builder = builder.withLabel(getBridge().getLabel() + ": " + text + " " + name);
+
+            if (thing.getChannel(DIGITAL_CHANNEL_ID) == null) {
+                final ChannelUID UID = new ChannelUID(getThing().getUID(), DIGITAL_CHANNEL_ID);
+                ChannelBuilder channel = ChannelBuilder.create(UID, text.equals(INPUT) ? "Contact" : "Switch");
+                channel = channel.withLabel(name);
+                channel = channel.withDescription("Digital " + text);
+                builder = builder.withChannel(channel.build());
+            }
+
+            updateThing(builder.build());
             super.initialize();
         } else {
             final String message = "Can not initialize LOGO! block. Please check blocks.";

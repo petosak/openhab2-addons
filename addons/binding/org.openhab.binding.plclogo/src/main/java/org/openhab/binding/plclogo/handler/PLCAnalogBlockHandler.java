@@ -61,16 +61,19 @@ public class PLCAnalogBlockHandler extends PLCBlockHandler {
             final String kind = getBlockKind();
             String text = kind.equals("AI") || kind.equals("NAI") ? INPUT : OUTPUT;
 
-            final ChannelUID UID = new ChannelUID(getThing().getUID(), ANALOG_CHANNEL_ID);
-            ChannelBuilder channel = ChannelBuilder.create(UID, "Number");
-            channel = channel.withLabel(name);
-            channel = channel.withDescription("Analog " + text);
-
-            ThingBuilder thing = editThing();
+            ThingBuilder builder = editThing();
             text = text.substring(0, 1).toUpperCase() + text.substring(1);
-            thing = thing.withLabel(getBridge().getLabel() + ": " + text + " " + name);
-            thing = thing.withChannel(channel.build());
-            updateThing(thing.build());
+            builder = builder.withLabel(getBridge().getLabel() + ": " + text + " " + name);
+
+            if (thing.getChannel(ANALOG_CHANNEL_ID) == null) {
+                final ChannelUID UID = new ChannelUID(getThing().getUID(), ANALOG_CHANNEL_ID);
+                ChannelBuilder channel = ChannelBuilder.create(UID, "Number");
+                channel = channel.withLabel(name);
+                channel = channel.withDescription("Analog " + text);
+                builder = builder.withChannel(channel.build());
+            }
+
+            updateThing(builder.build());
             super.initialize();
         } else {
             final String message = "Can not initialize LOGO! block. Please check blocks.";
