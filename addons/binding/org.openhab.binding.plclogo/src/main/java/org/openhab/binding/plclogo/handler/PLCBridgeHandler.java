@@ -69,16 +69,9 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
             if (client.LastError > 0) {
                 disconnect();
             }
-            while (!connect()) {
-                try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException exception) {
-                    exception.printStackTrace();
-                }
-            }
 
             final Map<?, Integer> memory = LOGO_MEMORY_BLOCK.get(getLogoFamily());
-            if (client.Connected && (memory != null)) {
+            if (connect() && (memory != null)) {
                 final Integer size = memory.get("SIZE");
                 final int packet = Math.min(size.intValue(), 1024);
                 int offset = packet;
@@ -118,6 +111,17 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
     @Override
     public void handleCommand(ChannelUID channelUID, Command command) {
         logger.debug("Handle command {} on channel {}", command, channelUID);
+
+        if (client.LastError > 0) {
+            client.Disconnect();
+            while (client.Connect() != 0) {
+                try {
+                    Thread.sleep(200);
+                } catch (InterruptedException exception) {
+                    exception.printStackTrace();
+                }
+            }
+        }
 
         final ThingUID thingUID = channelUID.getThingUID();
         if ((thingUID != null) && (thingRegistry != null)) {
