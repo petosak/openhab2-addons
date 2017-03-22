@@ -17,6 +17,12 @@
                 <description>LOGO! block or memory address</description>
                 <required>true</required>
             </parameter>
+            <parameter name="threshold" type="integer" min="0"> 
+                <label>Smallest value change to send</label>
+                <description>Smallest change of value will be send to OpenHab</description>
+                <default>0</default>
+                <required>false</required>
+            </parameter>
         </config-description>
     </thing-type>
 </thing:thing-descriptions>

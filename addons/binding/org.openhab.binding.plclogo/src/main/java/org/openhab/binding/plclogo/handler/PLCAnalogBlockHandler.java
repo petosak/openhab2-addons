@@ -11,6 +11,7 @@ import static org.openhab.binding.plclogo.PLCLogoBindingConstants.*;
 
 import java.util.Map;
 
+import org.eclipse.smarthome.config.core.Configuration;
 import org.eclipse.smarthome.core.library.types.DecimalType;
 import org.eclipse.smarthome.core.thing.Channel;
 import org.eclipse.smarthome.core.thing.ChannelUID;
@@ -32,6 +33,7 @@ public class PLCAnalogBlockHandler extends PLCBlockHandler {
 
     private final Logger logger = LoggerFactory.getLogger(PLCAnalogBlockHandler.class);
 
+    int threshold = 0;
     int oldValue = Integer.MAX_VALUE;
 
     public PLCAnalogBlockHandler(Thing thing) {
@@ -45,6 +47,14 @@ public class PLCAnalogBlockHandler extends PLCBlockHandler {
     public void initialize() {
         final String INPUT = "input";
         final String OUTPUT = "output";
+
+        Configuration config = getConfig();
+        if (config.containsKey("threshold")) {
+            Object entry = config.get("threshold");
+            if (entry instanceof String) {
+                threshold = Integer.decode((String) entry).intValue();
+            }
+        }
 
         final String name = getBlockName();
         if (isBlockValid(name)) {
@@ -77,16 +87,17 @@ public class PLCAnalogBlockHandler extends PLCBlockHandler {
         super.dispose();
 
         oldValue = Integer.MAX_VALUE;
+        threshold = 0;
     }
 
     public void setData(final short data) {
-        if (oldValue != data) {
+        if (Math.abs(oldValue - data) >= threshold) {
             final Channel channel = thing.getChannel(ANALOG_CHANNEL_ID);
             updateState(channel.getUID(), new DecimalType(data));
             logger.debug("Thing: {}, channel {}: {}", thing.getUID(), channel.getUID(), data);
-        }
 
-        oldValue = data;
+            oldValue = data;
+        }
     }
 
     @Override

@@ -89,9 +89,9 @@ public class PLCDigitalBlockHandler extends PLCBlockHandler {
                 updateState(channel.getUID(), data ? OnOffType.ON : OnOffType.OFF);
             }
             logger.debug("Thing: {}, channel {}: {}", thing.getUID(), channel.getUID(), data);
-        }
 
-        oldValue = data ? 1 : 0;
+            oldValue = data ? 1 : 0;
+        }
     }
 
     @Override

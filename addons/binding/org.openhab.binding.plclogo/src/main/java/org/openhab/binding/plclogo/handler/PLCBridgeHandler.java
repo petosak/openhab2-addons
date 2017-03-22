@@ -205,12 +205,12 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
 
             Integer interval = Integer.valueOf(100);
             entry = getConfigParameter(LOGO_REFRESH_INTERVAL);
-            if (entry instanceof Integer) {
-                interval = (Integer) entry;
+            if (entry instanceof String) {
+                interval = Integer.decode((String) entry);
             }
 
             logger.debug("Creating new reader job for {} with interval {} ms.", host, interval.toString());
-            job = scheduler.scheduleAtFixedRate(reader, 500, interval, TimeUnit.MILLISECONDS);
+            job = scheduler.scheduleAtFixedRate(reader, 1, interval, TimeUnit.MILLISECONDS);
         } else {
             final String message = "Can not initialize LOGO!. Please, check parameter.";
             updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.CONFIGURATION_ERROR, message);
