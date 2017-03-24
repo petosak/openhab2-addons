@@ -57,11 +57,11 @@ public class PLCDiscoveryService extends AbstractDiscoveryService {
     private ExecutorService executor = null;
 
     private class Runner implements Runnable {
-        final String address;
+        final String host;
 
         public Runner(final String address) {
-            this.address = address;
-            if (address == null) {
+            this.host = address;
+            if (host == null) {
                 throw new RuntimeException("IP may not be null!");
             }
         }
@@ -69,15 +69,26 @@ public class PLCDiscoveryService extends AbstractDiscoveryService {
         @Override
         public void run() {
             // gets every ip which can be assigned on the given network
-            final InetSocketAddress endpoint = new InetSocketAddress(address, 102);
-            if (!endpoint.isUnresolved()) {
+            InetAddress address = null;
+            try {
+                address = InetAddress.getByName(host);
+                if (!address.isReachable(CONNECTION_TIMEOUT / 5)) {
+                    address = null;
+                }
+            } catch (IOException | NullPointerException exception) {
+                logger.debug("LOGO! device not found at: {}.", host);
+                address = null;
+            }
+
+            final InetSocketAddress endpoint = new InetSocketAddress(host, 102);
+            if (!endpoint.isUnresolved() && (address != null)) {
                 Socket socket = new Socket();
                 try {
                     socket.connect(endpoint, CONNECTION_TIMEOUT);
 
-                    logger.info("LOGO! device found at: {}.", address);
+                    logger.info("LOGO! device found at: {}.", host);
 
-                    String hostname = InetAddress.getByName(address).getHostName();
+                    String hostname = address.getHostName();
                     if (!hostname.matches(UID.SEGMENT_PATTERN)) {
                         // Replace invalid char's, since UID has no method for this.
                         hostname = hostname.replaceAll("[^A-Za-z0-9_-]", "_");
@@ -86,7 +97,7 @@ public class PLCDiscoveryService extends AbstractDiscoveryService {
                     ThingUID thingUID = new ThingUID(THING_TYPE_DEVICE, hostname);
                     DiscoveryResultBuilder builder = DiscoveryResultBuilder.create(thingUID);
 
-                    builder = builder.withProperty(LOGO_HOST, address);
+                    builder = builder.withProperty(LOGO_HOST, host);
                     builder = builder.withLabel(hostname);
 
                     lock.lock();
@@ -96,7 +107,7 @@ public class PLCDiscoveryService extends AbstractDiscoveryService {
                         lock.unlock();
                     }
                 } catch (IOException exception) {
-                    logger.debug("LOGO! device not found at: {}.", address);
+                    logger.debug("LOGO! device not found at: {}.", host);
                 } finally {
                     try {
                         socket.close();
