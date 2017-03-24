@@ -31,6 +31,13 @@ public class PLCLogoClient extends S7Client {
 
     @Override
     public int ReadArea(int Area, int DBNumber, int Start, int Amount, int WordLength, byte[] Data) {
+        if (LastError != 0) {
+            Disconnect();
+        }
+        if (!Connected) {
+            Connect();
+        }
+
         final int packet = Math.min(Amount, 1024);
         int offset = packet;
 
@@ -57,6 +64,13 @@ public class PLCLogoClient extends S7Client {
 
     @Override
     public int WriteArea(int Area, int DBNumber, int Start, int Amount, int WordLength, byte[] Data) {
+        if (LastError != 0) {
+            Disconnect();
+        }
+        if (!Connected) {
+            Connect();
+        }
+
         lock.lock();
         int result = -1;
         do {
