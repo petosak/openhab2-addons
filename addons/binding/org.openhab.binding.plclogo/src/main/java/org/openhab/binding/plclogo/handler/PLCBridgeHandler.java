@@ -59,15 +59,14 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
     private ScheduledFuture<?> job = null;
     private Runnable reader = new Runnable() {
         // Buffer for read operations
-        private byte buffer[] = new byte[2048];
+        final private byte[] buffer = new byte[2048];
 
         @Override
         public void run() {
             final Map<?, Integer> memory = LOGO_MEMORY_BLOCK.get(getLogoFamily());
-            if (memory != null) {
+            if ((memory != null) && (client != null)) {
                 final Integer size = memory.get("SIZE");
                 client.ReadArea(S7.S7AreaDB, 1, 0, size.intValue(), S7Client.S7WLByte, buffer);
-
                 for (PLCBlockHandler handler : handlers) {
                     if (handler == null) {
                         continue;
@@ -93,7 +92,7 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
         logger.debug("Handle command {} on channel {}", command, channelUID);
 
         final ThingUID thingUID = channelUID.getThingUID();
-        if ((thingUID != null) && (thingRegistry != null)) {
+        if ((thingUID != null) && (thingRegistry != null) && (client != null)) {
             final PLCBlockHandler handler = (PLCBlockHandler) thingRegistry.get(thingUID).getHandler();
 
             int address = handler.getAddress();
@@ -111,6 +110,7 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
 
                     address = 8 * address + handler.getBit();
                     client.WriteArea(S7.S7AreaDB, 1, address, 1, S7Client.S7WLBit, buffer);
+                } else if (command instanceof RefreshType) {
                 }
             } else if (ANALOG_CHANNEL_ID.equals(channelUID.getId())) {
                 if (command instanceof DecimalType) {
@@ -118,11 +118,10 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
 
                     final DecimalType state = (DecimalType) command;
                     S7.SetShortAt(buffer, 0, (short) state.intValue());
-                    client.WriteArea(S7.S7AreaDB, 1, address, 2, S7Client.S7WLByte, buffer);
-                }
-            }
 
-            if (command instanceof RefreshType) {
+                    client.WriteArea(S7.S7AreaDB, 1, address, 2, S7Client.S7WLByte, buffer);
+                } else if (command instanceof RefreshType) {
+                }
             }
         }
     }
@@ -160,7 +159,7 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
                 interval = Integer.decode((String) entry);
             }
 
-            logger.debug("Creating new reader job for {} with interval {} ms.", host, interval.toString());
+            logger.info("Creating new reader job for {} with interval {} ms.", host, interval.toString());
             job = scheduler.scheduleWithFixedDelay(reader, 100, interval, TimeUnit.MILLISECONDS);
         } else {
             final String message = "Can not initialize LOGO!. Please, check parameter.";
