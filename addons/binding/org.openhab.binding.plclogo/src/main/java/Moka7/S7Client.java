@@ -37,9 +37,11 @@ import java.util.Date;
 public class S7Client
 {
     // WordLength
-    private static final byte S7WLByte    =0x02;
-    private static final byte S7WLCounter =0x1C;
-    private static final byte S7WLTimer   =0x1D;
+    public static final int S7WLBit     = 0x01;
+    public static final int S7WLByte    = 0x02;
+    public static final int S7WLCounter = 0x1C;
+    public static final int S7WLTimer   = 0x1D;
+
     // Error Codes
     public static final int errTCPConnectionFailed = 0x0001;
     public static final int errTCPDataSend         = 0x0002;
@@ -617,7 +619,7 @@ public class S7Client
         RemoteTSAP_LO= (byte) (RemTSAP & 0x00FF);
     }
 
-    public int ReadArea(int Area, int DBNumber, int Start, int Amount, byte[] Data)
+    public int ReadArea(int Area, int DBNumber, int Start, int Amount, int WordLength, byte[] Data)
     {
         int Address;
         int NumElements;
@@ -626,7 +628,7 @@ public class S7Client
         int SizeRequested;
         int Length;
         int Offset = 0;
-        int WordSize = 1;
+        byte WordSize = 1;
 
         LastError=0;
 
@@ -653,17 +655,16 @@ public class S7Client
             if (Area==S7.S7AreaDB)
                 S7.SetWordAt(PDU,25,DBNumber);
 
+            PDU[22] = (byte) WordLength;
             // Adjusts Start and word length
-            if ((Area==S7.S7AreaCT) || (Area==S7.S7AreaTM))
+            if ((WordLength==S7WLBit) || (WordLength==S7WLTimer) || (WordLength==S7WLCounter))
             {
                 Address = Start;
-                if (Area==S7.S7AreaCT)
-                    PDU[22]=S7WLCounter;
-                else
-                    PDU[22]=S7WLTimer;
             }
             else
+            {
                 Address = Start<<3;
+            }
 
             // Num elements
             S7.SetWordAt(PDU,23,NumElements);
@@ -674,6 +675,17 @@ public class S7Client
             PDU[29] = (byte) (Address & 0x0FF);
             Address = Address >> 8;
             PDU[28] = (byte) (Address & 0x0FF);
+
+            // Transport Size
+            PDU[32] = 0x04;
+            if (WordLength==S7WLBit)
+            {
+                PDU[32] = 0x03;
+            }
+            else if ((WordLength==S7WLTimer) || (WordLength==S7WLCounter))
+            {
+                PDU[32] = 0x09;
+            }
 
             SendPacket(PDU, Size_RD);
             if (LastError==0)
@@ -702,7 +714,7 @@ public class S7Client
         return LastError;
     }
 
-    public int WriteArea(int Area, int DBNumber, int Start, int Amount, byte[] Data)
+    public int WriteArea(int Area, int DBNumber, int Start, int Amount, int WordLength, byte[] Data)
     {
         int Address;
         int NumElements;
@@ -712,7 +724,7 @@ public class S7Client
         int IsoSize;
         int Length;
         int Offset = 0;
-        int WordSize = 1;
+        byte WordSize = 1;
 
         LastError=0;
 
@@ -720,7 +732,7 @@ public class S7Client
         if ((Area==S7.S7AreaCT) || (Area==S7.S7AreaTM))
             WordSize = 2;
 
-        MaxElements=(_PDULength-35) / WordSize; // 18 = Reply telegram header
+        MaxElements=(_PDULength-35) / WordSize; // 35 = Reply telegram header
         TotElements=Amount;
 
         while ((TotElements>0) && (LastError==0))
@@ -746,21 +758,19 @@ public class S7Client
             if (Area==S7.S7AreaDB)
                 S7.SetWordAt(PDU,25,DBNumber);
 
+            PDU[22] = (byte) WordLength;
             // Adjusts Start and word length
-            if ((Area==S7.S7AreaCT) || (Area==S7.S7AreaTM))
+            if ((WordLength==S7WLBit) || (WordLength==S7WLTimer) || (WordLength==S7WLCounter))
             {
                 Address = Start;
                 Length = DataSize;
-                if (Area==S7.S7AreaCT)
-                    PDU[22]=S7WLCounter;
-                else
-                    PDU[22]=S7WLTimer;
             }
             else
             {
                 Address = Start<<3;
-                Length  = DataSize<<3;
+                Length = DataSize<<3;
             }
+
             // Num elements
             S7.SetWordAt(PDU,23,NumElements);
             // Address into the PLC
@@ -769,6 +779,18 @@ public class S7Client
             PDU[29] = (byte) (Address & 0x0FF);
             Address = Address >> 8;
             PDU[28] = (byte) (Address & 0x0FF);
+
+            // Transport Size
+            PDU[32] = 0x04;
+            if (WordLength==S7WLBit)
+            {
+                PDU[32] = 0x03;
+            }
+            else if ((WordLength==S7WLTimer) || (WordLength==S7WLCounter))
+            {
+                PDU[32] = 0x09;
+            }
+
             // Length
             S7.SetWordAt(PDU,33,Length);
 
@@ -852,7 +874,7 @@ public class S7Client
             // Checks the room
             if (SizeToRead<=Buffer.length)
             {
-                LastError=ReadArea(S7.S7AreaDB, DBNumber, 0, SizeToRead, Buffer);
+                LastError=ReadArea(S7.S7AreaDB, DBNumber, 0, SizeToRead, S7WLByte, Buffer);
                 if (LastError==0)
                     SizeRead.Value=SizeToRead;
             }
