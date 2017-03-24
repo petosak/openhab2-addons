@@ -15,7 +15,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.ReentrantLock;
 
 import org.eclipse.smarthome.config.core.Configuration;
 import org.eclipse.smarthome.core.library.types.DecimalType;
@@ -32,6 +31,7 @@ import org.eclipse.smarthome.core.thing.binding.BaseBridgeHandler;
 import org.eclipse.smarthome.core.thing.binding.ThingHandler;
 import org.eclipse.smarthome.core.types.Command;
 import org.eclipse.smarthome.core.types.RefreshType;
+import org.openhab.binding.plclogo.internal.PLCLogoClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,42 +53,20 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
     /**
      * S7 client this bridge belongs to
      */
-    private volatile S7Client client = null;
+    private volatile PLCLogoClient client = null;
     private volatile Set<PLCBlockHandler> handlers = new HashSet<PLCBlockHandler>();
-
-    /**
-     * Buffer for read/write operations
-     */
-    private byte data[] = new byte[2048];
-    private final ReentrantLock lock = new ReentrantLock();
 
     private ScheduledFuture<?> job = null;
     private Runnable reader = new Runnable() {
+        // Buffer for read operations
+        private byte buffer[] = new byte[2048];
+
         @Override
         public void run() {
             final Map<?, Integer> memory = LOGO_MEMORY_BLOCK.get(getLogoFamily());
             if (memory != null) {
                 final Integer size = memory.get("SIZE");
-                final int packet = Math.min(size.intValue(), 1024);
-                int offset = packet;
-
-                lock.lock();
-                int result = -1;
-                do {
-                    // read first portion directly to data
-                    result = client.ReadArea(S7.S7AreaDB, 1, 0, packet, S7Client.S7WLByte, data);
-                    while ((result == 0) && (offset < size.intValue())) {
-                        byte buffer[] = new byte[Math.min(size.intValue() - offset, packet)];
-                        result = client.ReadArea(S7.S7AreaDB, 1, offset, buffer.length, S7Client.S7WLByte, buffer);
-                        System.arraycopy(buffer, 0, data, offset, buffer.length);
-                        offset = offset + buffer.length;
-                    }
-                    if (result != 0) {
-                        client.Disconnect();
-                        client.Connect();
-                    }
-                } while (result != 0);
-                lock.unlock();
+                client.ReadArea(S7.S7AreaDB, 1, 0, size.intValue(), S7Client.S7WLByte, buffer);
 
                 for (PLCBlockHandler handler : handlers) {
                     if (handler == null) {
@@ -96,10 +74,10 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
                     }
                     if (handler instanceof PLCDigitalBlockHandler) {
                         final PLCDigitalBlockHandler block = (PLCDigitalBlockHandler) handler;
-                        block.setData(S7.GetBitAt(data, block.getAddress(), block.getBit()));
+                        block.setData(S7.GetBitAt(buffer, block.getAddress(), block.getBit()));
                     } else if (handler instanceof PLCAnalogBlockHandler) {
                         final PLCAnalogBlockHandler block = (PLCAnalogBlockHandler) handler;
-                        block.setData((short) S7.GetShortAt(data, block.getAddress()));
+                        block.setData((short) S7.GetShortAt(buffer, block.getAddress()));
                     }
                 }
             }
@@ -131,17 +109,8 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
                         S7.SetBitAt(buffer, 0, 0, state == OpenClosedType.CLOSED);
                     }
 
-                    lock.lock();
-                    int result = -1;
-                    do {
-                        address = 8 * address + handler.getBit();
-                        result = client.WriteArea(S7.S7AreaDB, 1, address, 1, S7Client.S7WLBit, buffer);
-                        if (result != 0) {
-                            client.Disconnect();
-                            client.Connect();
-                        }
-                    } while (result != 0);
-                    lock.unlock();
+                    address = 8 * address + handler.getBit();
+                    client.WriteArea(S7.S7AreaDB, 1, address, 1, S7Client.S7WLBit, buffer);
                 }
             } else if (ANALOG_CHANNEL_ID.equals(channelUID.getId())) {
                 if (command instanceof DecimalType) {
@@ -149,17 +118,7 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
 
                     final DecimalType state = (DecimalType) command;
                     S7.SetShortAt(buffer, 0, (short) state.intValue());
-
-                    lock.lock();
-                    int result = -1;
-                    do {
-                        result = client.WriteArea(S7.S7AreaDB, 1, address, 2, S7Client.S7WLByte, buffer);
-                        if (result != 0) {
-                            client.Disconnect();
-                            client.Connect();
-                        }
-                    } while (result != 0);
-                    lock.unlock();
+                    client.WriteArea(S7.S7AreaDB, 1, address, 2, S7Client.S7WLByte, buffer);
                 }
             }
 
@@ -182,7 +141,7 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
 
         if (configured) {
             if (client == null) {
-                client = new S7Client();
+                client = new PLCLogoClient();
             }
             configured = connect();
         }
@@ -285,8 +244,7 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
             }
 
             if ((host != null) && (local != null) && (remote != null)) {
-                client.SetConnectionParams(host, local.intValue(), remote.intValue());
-                client.Connect();
+                client.Connect(host, local.intValue(), remote.intValue());
             }
         }
 
