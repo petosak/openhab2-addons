@@ -45,8 +45,8 @@ public class PLCAnalogBlockHandler extends PLCBlockHandler {
      */
     @Override
     public void initialize() {
-        final String INPUT = "input";
-        final String OUTPUT = "output";
+        final String INPUT = "Input";
+        final String OUTPUT = "Output";
 
         Configuration config = getConfig();
         if (config.containsKey("threshold")) {
@@ -59,7 +59,7 @@ public class PLCAnalogBlockHandler extends PLCBlockHandler {
         final String name = getBlockName();
         if (isBlockValid(name)) {
             final String kind = getBlockKind();
-            String text = kind.equals("AI") || kind.equals("NAI") ? INPUT : OUTPUT;
+            String text = kind.equalsIgnoreCase("AI") || kind.equalsIgnoreCase("NAI") ? INPUT : OUTPUT;
 
             ThingBuilder builder = editThing();
             text = text.substring(0, 1).toUpperCase() + text.substring(1);
@@ -96,8 +96,13 @@ public class PLCAnalogBlockHandler extends PLCBlockHandler {
     public void setData(final short data) {
         if (Math.abs(oldValue - data) >= threshold) {
             final Channel channel = thing.getChannel(ANALOG_CHANNEL_ID);
-            updateState(channel.getUID(), new DecimalType(data));
-            logger.debug("Thing: {}, channel {}: {}", thing.getUID(), channel.getUID(), data);
+            final String type = channel.getAcceptedItemType();
+            if (type.equalsIgnoreCase("Number")) {
+                updateState(channel.getUID(), new DecimalType(data));
+            } else {
+                logger.warn("Channel {} will not accept {} items ", channel.getUID(), type);
+            }
+            logger.debug("Channel {} accepting {} was set to {}", channel.getUID(), type, data);
 
             oldValue = data;
         }

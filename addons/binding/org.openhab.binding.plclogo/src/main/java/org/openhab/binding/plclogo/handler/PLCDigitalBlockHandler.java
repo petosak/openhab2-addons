@@ -44,13 +44,13 @@ public class PLCDigitalBlockHandler extends PLCBlockHandler {
      */
     @Override
     public void initialize() {
-        final String INPUT = "input";
-        final String OUTPUT = "output";
+        final String INPUT = "Input";
+        final String OUTPUT = "Output";
 
         final String name = getBlockName();
         if (isBlockValid(name)) {
             final String kind = getBlockKind();
-            String text = kind.equals("I") || kind.equals("NI") ? INPUT : OUTPUT;
+            String text = kind.equalsIgnoreCase("I") || kind.equalsIgnoreCase("NI") ? INPUT : OUTPUT;
 
             ThingBuilder builder = editThing();
             text = text.substring(0, 1).toUpperCase() + text.substring(1);
@@ -58,7 +58,8 @@ public class PLCDigitalBlockHandler extends PLCBlockHandler {
 
             if (thing.getChannel(DIGITAL_CHANNEL_ID) == null) {
                 final ChannelUID UID = new ChannelUID(getThing().getUID(), DIGITAL_CHANNEL_ID);
-                ChannelBuilder channel = ChannelBuilder.create(UID, text.equals(INPUT) ? "Contact" : "Switch");
+                final String type = INPUT.equalsIgnoreCase(text) ? "Contact" : "Switch";
+                ChannelBuilder channel = ChannelBuilder.create(UID, type);
                 channel = channel.withLabel(name);
                 channel = channel.withDescription("Digital " + text);
                 builder = builder.withChannel(channel.build());
@@ -86,12 +87,15 @@ public class PLCDigitalBlockHandler extends PLCBlockHandler {
     public void setData(final boolean data) {
         if (oldValue != (data ? 1 : 0)) {
             final Channel channel = thing.getChannel(DIGITAL_CHANNEL_ID);
-            if (channel.getAcceptedItemType().equals("Contact")) {
+            final String type = channel.getAcceptedItemType();
+            if (type.equalsIgnoreCase("Contact")) {
                 updateState(channel.getUID(), data ? OpenClosedType.CLOSED : OpenClosedType.OPEN);
-            } else {
+            } else if (type.equalsIgnoreCase("Switch")) {
                 updateState(channel.getUID(), data ? OnOffType.ON : OnOffType.OFF);
+            } else {
+                logger.warn("Channel {} will not accept {} items ", channel.getUID(), type);
             }
-            logger.debug("Thing: {}, channel {}: {}", thing.getUID(), channel.getUID(), data);
+            logger.debug("Channel {} accepting {} was set to {}", channel.getUID(), type, data);
 
             oldValue = data ? 1 : 0;
         }
