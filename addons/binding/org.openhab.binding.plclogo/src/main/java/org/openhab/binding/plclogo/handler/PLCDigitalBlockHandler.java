@@ -85,8 +85,9 @@ public class PLCDigitalBlockHandler extends PLCBlockHandler {
     }
 
     public void setData(final boolean data) {
-        if (oldValue != (data ? 1 : 0)) {
+        if ((oldValue != (data ? 1 : 0)) || isUpdateForcing()) {
             final Channel channel = thing.getChannel(DIGITAL_CHANNEL_ID);
+
             final String type = channel.getAcceptedItemType();
             if (type.equalsIgnoreCase("Contact")) {
                 updateState(channel.getUID(), data ? OpenClosedType.CLOSED : OpenClosedType.OPEN);

@@ -19,8 +19,14 @@
             </parameter>
             <parameter name="threshold" type="integer" min="0"> 
                 <label>Smallest value change to send</label>
-                <description>Smallest change of value will be send to OpenHab</description>
+                <description>Smallest change of value will be send to openHAB</description>
                 <default>0</default>
+                <required>false</required>
+            </parameter>
+            <parameter name="force" type="boolean"> 
+                <label>Force channel update</label>
+                <description>Update of the channel be should propagated to openHAB</description>
+                <default>false</default>
                 <required>false</required>
             </parameter>
         </config-description>

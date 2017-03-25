@@ -103,7 +103,7 @@ public abstract class PLCBlockHandler extends BaseThingHandler {
     public String getBlockName() {
         Object entry = getConfigParameter(LOGO_BLOCK);
         if (entry instanceof String) {
-            String name = (String) entry;
+            final String name = (String) entry;
             return name.toUpperCase();
         }
         return null;
@@ -128,6 +128,16 @@ public abstract class PLCBlockHandler extends BaseThingHandler {
             return handler.getLogoFamily();
         }
         return null;
+    }
+
+    public boolean isUpdateForcing() {
+        boolean result = false;
+        Object entry = getConfigParameter(FORCE_UPDATE);
+        if (entry instanceof String) {
+            final String value = (String) entry;
+            result = Boolean.parseBoolean(value.toLowerCase());
+        }
+        return result;
     }
 
     abstract protected int getAddress(final String name);

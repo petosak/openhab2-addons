@@ -37,6 +37,7 @@ public class PLCLogoBindingConstants {
 
     // Thing config properties
     public static final String LOGO_BLOCK = "block";
+    public static final String FORCE_UPDATE = "force";
 
     // List of all Channel Type UIDs
     public static final String ANALOG_CHANNEL_ID = "value";

@@ -17,6 +17,12 @@
                 <description>LOGO! block or memory address</description>
                 <required>true</required>
             </parameter>
+            <parameter name="force" type="boolean"> 
+                <label>Force channel update</label>
+                <description>Update of the channel be should propagated to openHAB</description>
+                <default>false</default>
+                <required>false</required>
+            </parameter>
         </config-description>
     </thing-type>
 </thing:thing-descriptions>

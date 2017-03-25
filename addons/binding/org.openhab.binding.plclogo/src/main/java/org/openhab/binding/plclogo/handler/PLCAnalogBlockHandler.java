@@ -94,8 +94,9 @@ public class PLCAnalogBlockHandler extends PLCBlockHandler {
     }
 
     public void setData(final short data) {
-        if (Math.abs(oldValue - data) >= threshold) {
+        if ((Math.abs(oldValue - data) >= threshold) || isUpdateForcing()) {
             final Channel channel = thing.getChannel(ANALOG_CHANNEL_ID);
+
             final String type = channel.getAcceptedItemType();
             if (type.equalsIgnoreCase("Number")) {
                 updateState(channel.getUID(), new DecimalType(data));
