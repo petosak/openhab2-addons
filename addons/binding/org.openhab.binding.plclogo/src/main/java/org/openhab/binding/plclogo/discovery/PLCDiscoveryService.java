@@ -53,11 +53,11 @@ public class PLCDiscoveryService extends AbstractDiscoveryService {
     private static final int CONNECTION_TIMEOUT = 500;
     private TreeSet<String> addresses = new TreeSet<String>();
 
-    private ReentrantLock lock = new ReentrantLock();
     private ExecutorService executor = null;
 
     private class Runner implements Runnable {
-        final String host;
+        private final ReentrantLock lock = new ReentrantLock();
+        private final String host;
 
         public Runner(final String address) {
             this.host = address;
@@ -66,6 +66,9 @@ public class PLCDiscoveryService extends AbstractDiscoveryService {
             }
         }
 
+        /**
+         * {@inheritDoc}
+         */
         @Override
         public void run() {
             // gets every ip which can be assigned on the given network
@@ -85,7 +88,6 @@ public class PLCDiscoveryService extends AbstractDiscoveryService {
                 Socket socket = new Socket();
                 try {
                     socket.connect(endpoint, CONNECTION_TIMEOUT);
-
                     logger.info("LOGO! device found at: {}.", host);
 
                     String hostname = address.getHostName();
@@ -94,9 +96,8 @@ public class PLCDiscoveryService extends AbstractDiscoveryService {
                         hostname = hostname.replaceAll("[^A-Za-z0-9_-]", "_");
                     }
 
-                    ThingUID thingUID = new ThingUID(THING_TYPE_DEVICE, hostname);
+                    final ThingUID thingUID = new ThingUID(THING_TYPE_DEVICE, hostname);
                     DiscoveryResultBuilder builder = DiscoveryResultBuilder.create(thingUID);
-
                     builder = builder.withProperty(LOGO_HOST, host);
                     builder = builder.withLabel(hostname);
 
@@ -153,7 +154,7 @@ public class PLCDiscoveryService extends AbstractDiscoveryService {
             logger.error("LOGO! bridge discovering: {}.", exception.toString());
         }
 
-        executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() - 1);
+        executor = Executors.newFixedThreadPool(10 * Runtime.getRuntime().availableProcessors());
         for (String address : addresses) {
             executor.execute(new Runner(address));
         }
@@ -170,8 +171,7 @@ public class PLCDiscoveryService extends AbstractDiscoveryService {
 
         if (executor != null) {
             try {
-                final long size = (long) Math.ceil(1.5 * addresses.size());
-                executor.awaitTermination(CONNECTION_TIMEOUT * size, TimeUnit.MILLISECONDS);
+                executor.awaitTermination(CONNECTION_TIMEOUT * addresses.size(), TimeUnit.MILLISECONDS);
             } catch (InterruptedException exception) {
                 logger.error("LOGO! bridge discovering: {}.", exception.toString());
             }
@@ -179,24 +179,6 @@ public class PLCDiscoveryService extends AbstractDiscoveryService {
             executor = null;
         }
         addresses.clear();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    protected void startBackgroundDiscovery() {
-        logger.debug("Start background scan for LOGO! bridge");
-        startScan();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    protected void stopBackgroundDiscovery() {
-        logger.debug("Stop background scan for LOGO! bridge");
-        stopScan();
     }
 
 }
