@@ -37,7 +37,7 @@
           <required>true</required>
           <default>0x2000</default>
         </parameter>
-        <parameter name="refresh" type="integer" min="50" step="50">
+        <parameter name="refresh" type="integer" min="100" step="50">
           <label>Refresh interval</label>
           <description>Milliseconds between reread of data from PLC.</description>
           <required>true</required>
