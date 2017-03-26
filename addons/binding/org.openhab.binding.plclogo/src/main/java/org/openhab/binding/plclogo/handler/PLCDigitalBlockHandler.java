@@ -84,6 +84,11 @@ public class PLCDigitalBlockHandler extends PLCBlockHandler {
         oldValue = Integer.MAX_VALUE;
     }
 
+    /**
+     * Update value channel of current thing with new data.
+     *
+     * @param data Data value to update with
+     */
     public void setData(final boolean data) {
         if ((oldValue != (data ? 1 : 0)) || isUpdateForcing()) {
             final Channel channel = thing.getChannel(DIGITAL_CHANNEL_ID);
@@ -102,6 +107,9 @@ public class PLCDigitalBlockHandler extends PLCBlockHandler {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     protected int getAddress(final String name) {
         int address = -1;
@@ -121,6 +129,9 @@ public class PLCDigitalBlockHandler extends PLCBlockHandler {
         return address;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     protected int getBit(final String name) {
         int bit = -1;
@@ -142,6 +153,9 @@ public class PLCDigitalBlockHandler extends PLCBlockHandler {
         return bit;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     protected boolean isBlockValid(final String name) {
         boolean valid = false;
@@ -160,6 +174,12 @@ public class PLCDigitalBlockHandler extends PLCBlockHandler {
         return valid;
     }
 
+    /**
+     * Calculate address offset for given block name.
+     *
+     * @param name Name of the data block
+     * @return Calculated address offset
+     */
     private int getBase(final String name) {
         int base = 0;
         final String block = name.split("\\.")[0];
@@ -171,4 +191,5 @@ public class PLCDigitalBlockHandler extends PLCBlockHandler {
         }
         return base;
     }
+
 }

@@ -19,6 +19,7 @@ import org.eclipse.smarthome.core.thing.ThingStatus;
 import org.eclipse.smarthome.core.thing.ThingStatusDetail;
 import org.eclipse.smarthome.core.thing.binding.BaseThingHandler;
 import org.eclipse.smarthome.core.types.Command;
+import org.openhab.binding.plclogo.PLCLogoBindingConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,6 +36,9 @@ public abstract class PLCBlockHandler extends BaseThingHandler {
     private int address = -1;
     private int bit = -1;
 
+    /**
+     * {@inheritDoc}
+     */
     public PLCBlockHandler(Thing thing) {
         super(thing);
     }
@@ -84,6 +88,11 @@ public abstract class PLCBlockHandler extends BaseThingHandler {
         bit = -1;
     }
 
+    /**
+     * Calculate memory address for configured block.
+     *
+     * @return Calculated address
+     */
     public int getAddress() {
         final String name = getBlockName();
         if ((address == -1) && isBlockValid(name)) {
@@ -92,6 +101,11 @@ public abstract class PLCBlockHandler extends BaseThingHandler {
         return address;
     }
 
+    /**
+     * Calculate bit within memory address for configured block.
+     *
+     * @return Calculated bit
+     */
     public int getBit() {
         final String name = getBlockName();
         if ((bit == -1) && isBlockValid(name)) {
@@ -100,6 +114,11 @@ public abstract class PLCBlockHandler extends BaseThingHandler {
         return bit;
     }
 
+    /**
+     * Returns configured block name.
+     *
+     * @return Name of configured LOGO! block
+     */
     public String getBlockName() {
         Object entry = getConfigParameter(LOGO_BLOCK);
         if (entry instanceof String) {
@@ -109,6 +128,14 @@ public abstract class PLCBlockHandler extends BaseThingHandler {
         return null;
     }
 
+    /**
+     * Returns configured LOGO! block kind.
+     * Can be VB, VW, I, Q, M, AI, AQ, AM, NI, NAI, NQ or NAQ
+     *
+     * @see PLCLogoBindingConstants#LOGO_MEMORY_0BA7
+     * @see PLCLogoBindingConstants#LOGO_MEMORY_0BA8
+     * @return Kind of configured block
+     */
     public String getBlockKind() {
         final String name = getBlockName();
         if (Character.isDigit(name.charAt(1))) {
@@ -121,6 +148,13 @@ public abstract class PLCBlockHandler extends BaseThingHandler {
         return null;
     }
 
+    /**
+     * Returns configured LOGO! family.
+     *
+     * @see PLCLogoBindingConstants#LOGO_0BA7
+     * @see PLCLogoBindingConstants#LOGO_0BA8
+     * @return Configured LOGO! family
+     */
     public String getLogoFamily() {
         Bridge bridge = getBridge();
         if (bridge != null) {
@@ -130,6 +164,11 @@ public abstract class PLCBlockHandler extends BaseThingHandler {
         return null;
     }
 
+    /**
+     * Returns if channel update must be forced.
+     *
+     * @return True, if channel update to be forced and false otherwise
+     */
     public boolean isUpdateForcing() {
         boolean result = false;
         Object entry = getConfigParameter(FORCE_UPDATE);
@@ -140,10 +179,28 @@ public abstract class PLCBlockHandler extends BaseThingHandler {
         return result;
     }
 
+    /**
+     * Calculate address for the block with given name.
+     *
+     * @param name Name of the LOGO! block
+     * @return Calculated address offset
+     */
     abstract protected int getAddress(final String name);
 
+    /**
+     * Calculate bit within address for block with given name.
+     *
+     * @param name Name of the LOGO! block
+     * @return Calculated bit
+     */
     abstract protected int getBit(final String name);
 
+    /**
+     * Checks, if given name for the block is valid.
+     *
+     * @param name Name of the LOGO! block
+     * @return True, if the name is valid and false otherwise
+     */
     abstract protected boolean isBlockValid(final String name);
 
     private Object getConfigParameter(final String name) {
@@ -154,4 +211,5 @@ public abstract class PLCBlockHandler extends BaseThingHandler {
         }
         return result;
     }
+
 }

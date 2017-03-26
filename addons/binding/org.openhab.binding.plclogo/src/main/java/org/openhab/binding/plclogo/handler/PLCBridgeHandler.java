@@ -83,10 +83,16 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
         }
     };
 
+    /**
+     * {@inheritDoc}
+     */
     public PLCBridgeHandler(Bridge bridge) {
         super(bridge);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void handleCommand(ChannelUID channelUID, Command command) {
         logger.debug("Handle command {} on channel {}", command, channelUID);
@@ -193,6 +199,9 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void childHandlerInitialized(ThingHandler childHandler, Thing childThing) {
         super.childHandlerInitialized(childHandler, childThing);
@@ -205,6 +214,9 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void childHandlerDisposed(ThingHandler childHandler, Thing childThing) {
         if (handlers.contains(childHandler)) {
@@ -213,6 +225,11 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
         super.childHandlerDisposed(childHandler, childThing);
     }
 
+    /**
+     * Returns configured Siemens LOGO! family: 0BA7 or 0BA8.
+     *
+     * @return Configured Siemens LOGO! family
+     */
     public String getLogoFamily() {
         Object family = getConfigParameter(LOGO_FAMILY);
         if (family instanceof String) {
@@ -221,6 +238,11 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
         return null;
     }
 
+    /**
+     * Read connection parameter and connect to Siemens LOGO!
+     *
+     * @return True, if connected and false otherwise
+     */
     private synchronized boolean connect() {
         Object entry = null;
         if (!client.Connected) {
@@ -250,6 +272,11 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
         return client.Connected;
     }
 
+    /**
+     * Disconnect from Siemens LOGO!
+     *
+     * @return True, if disconnected and false otherwise
+     */
     private synchronized boolean disconnect() {
         boolean result = false;
         if (client != null) {
@@ -267,4 +294,5 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
         }
         return result;
     }
+
 }

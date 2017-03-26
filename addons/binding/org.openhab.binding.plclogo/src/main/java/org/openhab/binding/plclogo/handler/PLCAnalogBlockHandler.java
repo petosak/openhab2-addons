@@ -36,6 +36,9 @@ public class PLCAnalogBlockHandler extends PLCBlockHandler {
     int threshold = 0;
     int oldValue = Integer.MAX_VALUE;
 
+    /**
+     * {@inheritDoc}
+     */
     public PLCAnalogBlockHandler(Thing thing) {
         super(thing);
     }
@@ -93,6 +96,11 @@ public class PLCAnalogBlockHandler extends PLCBlockHandler {
         threshold = 0;
     }
 
+    /**
+     * Update value channel of current thing with new data.
+     *
+     * @param data Data value to update with
+     */
     public void setData(final short data) {
         if ((Math.abs(oldValue - data) >= threshold) || isUpdateForcing()) {
             final Channel channel = thing.getChannel(ANALOG_CHANNEL_ID);
@@ -109,6 +117,9 @@ public class PLCAnalogBlockHandler extends PLCBlockHandler {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     protected int getAddress(final String name) {
         int address = -1;
@@ -128,11 +139,17 @@ public class PLCAnalogBlockHandler extends PLCBlockHandler {
         return address;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     protected int getBit(final String name) {
         return 0;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     protected boolean isBlockValid(final String name) {
         boolean valid = false;
@@ -148,6 +165,12 @@ public class PLCAnalogBlockHandler extends PLCBlockHandler {
         return valid;
     }
 
+    /**
+     * Calculate address offset for given block name.
+     *
+     * @param name Name of the data block
+     * @return Calculated address offset
+     */
     private int getBase(final String name) {
         int base = 0;
         final String block = name.split("\\.")[0];
@@ -159,4 +182,5 @@ public class PLCAnalogBlockHandler extends PLCBlockHandler {
         }
         return base;
     }
+
 }

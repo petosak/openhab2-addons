@@ -120,6 +120,9 @@ public class PLCDiscoveryService extends AbstractDiscoveryService {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public PLCDiscoveryService() {
         super(DISCOVERABLE_THING_TYPES_UIDS, DISCOVERY_TIMEOUT);
     }

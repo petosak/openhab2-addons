@@ -22,25 +22,34 @@ import org.openhab.binding.plclogo.handler.PLCBridgeHandler;
 import org.openhab.binding.plclogo.handler.PLCDigitalBlockHandler;
 
 /**
- * The {@link PLCLogoHandlerFactory} is responsible for creating things and thing
- * handlers.
+ * The {@link PLCLogoHandlerFactory} is responsible for creating things and
+ * thing handlers supported by PLCLogo binding.
  *
  * @author Alexander Falkenstern - Initial contribution
  */
 public class PLCLogoHandlerFactory extends BaseThingHandlerFactory {
     private final static Set<ThingTypeUID> SUPPORTED_THING_TYPES_UIDS = new HashSet<ThingTypeUID>();
 
+    /**
+     * Constructor.
+     */
     public PLCLogoHandlerFactory() {
         SUPPORTED_THING_TYPES_UIDS.add(THING_TYPE_DEVICE);
         SUPPORTED_THING_TYPES_UIDS.add(THING_TYPE_DIGITAL);
         SUPPORTED_THING_TYPES_UIDS.add(THING_TYPE_ANALOG);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public boolean supportsThingType(ThingTypeUID thingTypeUID) {
         return SUPPORTED_THING_TYPES_UIDS.contains(thingTypeUID);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     protected ThingHandler createHandler(Thing thing) {
         if (THING_TYPE_DEVICE.equals(thing.getThingTypeUID()) && (thing instanceof Bridge)) {
@@ -53,4 +62,5 @@ public class PLCLogoHandlerFactory extends BaseThingHandlerFactory {
 
         return null;
     }
+
 }
