@@ -36,7 +36,7 @@ public class PLCDigitalBlockHandler extends PLCBlockHandler {
 
     private final Logger logger = LoggerFactory.getLogger(PLCDigitalBlockHandler.class);
 
-    public final static Set<ThingTypeUID> SUPPORTED_THING_TYPES = Collections.singleton(THING_TYPE_DEVICE);
+    public final static Set<ThingTypeUID> SUPPORTED_THING_TYPES = Collections.singleton(THING_TYPE_DIGITAL);
 
     int oldValue = Integer.MAX_VALUE;
 
