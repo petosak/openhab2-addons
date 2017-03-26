@@ -19,6 +19,8 @@ import Moka7.S7Client;
  */
 public class PLCLogoClient extends S7Client {
 
+    private static final int MAX_RETRY_NUMBER = 10;
+
     private final ReentrantLock lock = new ReentrantLock();
 
     /**
@@ -65,6 +67,7 @@ public class PLCLogoClient extends S7Client {
         int offset = packet;
 
         lock.lock();
+        int retry = 0;
         int result = -1;
         do {
             // read first portion directly to data
@@ -75,7 +78,13 @@ public class PLCLogoClient extends S7Client {
                 System.arraycopy(buffer, 0, Data, offset, buffer.length);
                 offset = offset + buffer.length;
             }
+
+            if (retry == MAX_RETRY_NUMBER) {
+                break;
+            }
+
             if (result != 0) {
+                retry = retry + 1;
                 Disconnect();
                 Connect();
             }
@@ -120,10 +129,17 @@ public class PLCLogoClient extends S7Client {
         }
 
         lock.lock();
+        int retry = 0;
         int result = -1;
         do {
             result = super.WriteArea(Area, DBNumber, Start, Amount, WordLength, Data);
+
+            if (retry == MAX_RETRY_NUMBER) {
+                break;
+            }
+
             if (result != 0) {
+                retry = retry + 1;
                 Disconnect();
                 Connect();
             }

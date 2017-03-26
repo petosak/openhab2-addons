@@ -9,7 +9,9 @@ package org.openhab.binding.plclogo.handler;
 
 import static org.openhab.binding.plclogo.PLCLogoBindingConstants.*;
 
+import java.util.Collections;
 import java.util.Map;
+import java.util.Set;
 
 import org.eclipse.smarthome.config.core.Configuration;
 import org.eclipse.smarthome.core.library.types.DecimalType;
@@ -18,6 +20,7 @@ import org.eclipse.smarthome.core.thing.ChannelUID;
 import org.eclipse.smarthome.core.thing.Thing;
 import org.eclipse.smarthome.core.thing.ThingStatus;
 import org.eclipse.smarthome.core.thing.ThingStatusDetail;
+import org.eclipse.smarthome.core.thing.ThingTypeUID;
 import org.eclipse.smarthome.core.thing.binding.builder.ChannelBuilder;
 import org.eclipse.smarthome.core.thing.binding.builder.ThingBuilder;
 import org.slf4j.Logger;
@@ -32,6 +35,8 @@ import org.slf4j.LoggerFactory;
 public class PLCAnalogBlockHandler extends PLCBlockHandler {
 
     private final Logger logger = LoggerFactory.getLogger(PLCAnalogBlockHandler.class);
+
+    public final static Set<ThingTypeUID> SUPPORTED_THING_TYPES = Collections.singleton(THING_TYPE_ANALOG);
 
     int threshold = 0;
     int oldValue = Integer.MAX_VALUE;

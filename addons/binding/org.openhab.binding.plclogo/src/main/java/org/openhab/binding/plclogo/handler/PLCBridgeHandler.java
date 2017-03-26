@@ -66,18 +66,23 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
             final Map<?, Integer> memory = LOGO_MEMORY_BLOCK.get(getLogoFamily());
             if ((memory != null) && (client != null)) {
                 final Integer size = memory.get("SIZE");
-                client.ReadArea(S7.S7AreaDB, 1, 0, size.intValue(), S7Client.S7WLByte, buffer);
-                for (PLCBlockHandler handler : handlers) {
-                    if (handler == null) {
-                        continue;
+                int result = client.ReadDBArea(1, 0, size.intValue(), S7Client.S7WLByte, buffer);
+
+                if (result == 0) {
+                    for (PLCBlockHandler handler : handlers) {
+                        if (handler == null) {
+                            continue;
+                        }
+                        if (handler instanceof PLCDigitalBlockHandler) {
+                            final PLCDigitalBlockHandler block = (PLCDigitalBlockHandler) handler;
+                            block.setData(S7.GetBitAt(buffer, block.getAddress(), block.getBit()));
+                        } else if (handler instanceof PLCAnalogBlockHandler) {
+                            final PLCAnalogBlockHandler block = (PLCAnalogBlockHandler) handler;
+                            block.setData((short) S7.GetShortAt(buffer, block.getAddress()));
+                        }
                     }
-                    if (handler instanceof PLCDigitalBlockHandler) {
-                        final PLCDigitalBlockHandler block = (PLCDigitalBlockHandler) handler;
-                        block.setData(S7.GetBitAt(buffer, block.getAddress(), block.getBit()));
-                    } else if (handler instanceof PLCAnalogBlockHandler) {
-                        final PLCAnalogBlockHandler block = (PLCAnalogBlockHandler) handler;
-                        block.setData((short) S7.GetShortAt(buffer, block.getAddress()));
-                    }
+                } else {
+                    logger.error("Can not read data from LOGO!: {}.", S7Client.ErrorText(result));
                 }
             }
         }
@@ -115,7 +120,10 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
                     }
 
                     address = 8 * address + handler.getBit();
-                    client.WriteArea(S7.S7AreaDB, 1, address, 1, S7Client.S7WLBit, buffer);
+                    int result = client.WriteDBArea(1, address, 1, S7Client.S7WLBit, buffer);
+                    if (result != 0) {
+                        logger.error("Can not write data to LOGO!: {}.", S7Client.ErrorText(result));
+                    }
                 } else if (command instanceof RefreshType) {
                 }
             } else if (ANALOG_CHANNEL_ID.equals(channelUID.getId())) {
@@ -125,7 +133,10 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
                     final DecimalType state = (DecimalType) command;
                     S7.SetShortAt(buffer, 0, (short) state.intValue());
 
-                    client.WriteArea(S7.S7AreaDB, 1, address, 2, S7Client.S7WLByte, buffer);
+                    int result = client.WriteDBArea(1, address, 2, S7Client.S7WLByte, buffer);
+                    if (result != 0) {
+                        logger.error("Can not write data to LOGO!: {}.", S7Client.ErrorText(result));
+                    }
                 } else if (command instanceof RefreshType) {
                 }
             }
