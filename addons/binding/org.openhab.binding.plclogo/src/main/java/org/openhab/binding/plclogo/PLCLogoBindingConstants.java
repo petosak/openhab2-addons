@@ -95,4 +95,5 @@ public class PLCLogoBindingConstants {
                     put(LOGO_0BA8, LOGO_MEMORY_0BA8);
                 }
             });
+
 }

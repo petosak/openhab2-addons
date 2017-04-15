@@ -9,6 +9,9 @@ package org.openhab.binding.plclogo.internal;
 
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import Moka7.S7;
 import Moka7.S7Client;
 
@@ -18,6 +21,8 @@ import Moka7.S7Client;
  * @author Alexander Falkenstern - Initial contribution
  */
 public class PLCLogoClient extends S7Client {
+
+    private final Logger logger = LoggerFactory.getLogger(PLCLogoClient.class);
 
     private static final int MAX_RETRY_NUMBER = 10;
 
@@ -57,6 +62,7 @@ public class PLCLogoClient extends S7Client {
     @Override
     public int ReadArea(int Area, int DBNumber, int Start, int Amount, int WordLength, byte[] Data) {
         if (LastError != 0) {
+            logger.debug("Reconnect during read: {}.", ErrorText(LastError));
             Disconnect();
         }
         if (!Connected) {
@@ -80,10 +86,12 @@ public class PLCLogoClient extends S7Client {
             }
 
             if (retry == MAX_RETRY_NUMBER) {
+                logger.debug("Giving up to read after {} retries.", MAX_RETRY_NUMBER);
                 break;
             }
 
             if (result != 0) {
+                logger.debug("Reconnect during read: {}.", ErrorText(result));
                 retry = retry + 1;
                 Disconnect();
                 Connect();
@@ -122,6 +130,7 @@ public class PLCLogoClient extends S7Client {
     @Override
     public int WriteArea(int Area, int DBNumber, int Start, int Amount, int WordLength, byte[] Data) {
         if (LastError != 0) {
+            logger.debug("Reconnect during write: {}.", ErrorText(LastError));
             Disconnect();
         }
         if (!Connected) {
@@ -135,10 +144,12 @@ public class PLCLogoClient extends S7Client {
             result = super.WriteArea(Area, DBNumber, Start, Amount, WordLength, Data);
 
             if (retry == MAX_RETRY_NUMBER) {
+                logger.debug("Giving up to write after {} retries.", MAX_RETRY_NUMBER);
                 break;
             }
 
             if (result != 0) {
+                logger.debug("Reconnect during write: {}.", ErrorText(result));
                 retry = retry + 1;
                 Disconnect();
                 Connect();

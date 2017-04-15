@@ -23,6 +23,7 @@ import org.eclipse.smarthome.core.thing.ThingStatusDetail;
 import org.eclipse.smarthome.core.thing.ThingTypeUID;
 import org.eclipse.smarthome.core.thing.binding.builder.ChannelBuilder;
 import org.eclipse.smarthome.core.thing.binding.builder.ThingBuilder;
+import org.openhab.binding.plclogo.internal.PLCLogoDataType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -70,6 +71,7 @@ public class PLCDigitalBlockHandler extends PLCBlockHandler {
                 builder = builder.withChannel(channel.build());
             }
 
+            oldValue = Integer.MAX_VALUE;
             updateThing(builder.build());
             super.initialize();
         } else {
@@ -95,6 +97,8 @@ public class PLCDigitalBlockHandler extends PLCBlockHandler {
      * @param data Data value to update with
      */
     public void setData(final boolean data) {
+        logger.debug("Block {} received {}.", getBlockName(), data);
+
         if ((oldValue != (data ? 1 : 0)) || isUpdateForcing()) {
             final Channel channel = thing.getChannel(DIGITAL_CHANNEL_ID);
 
@@ -104,9 +108,9 @@ public class PLCDigitalBlockHandler extends PLCBlockHandler {
             } else if (type.equalsIgnoreCase("Switch")) {
                 updateState(channel.getUID(), data ? OnOffType.ON : OnOffType.OFF);
             } else {
-                logger.warn("Channel {} will not accept {} items ", channel.getUID(), type);
+                logger.warn("Channel {} will not accept {} items.", channel.getUID(), type);
             }
-            logger.debug("Channel {} accepting {} was set to {}", channel.getUID(), type, data);
+            logger.debug("Channel {} accepting {} was set to {}.", channel.getUID(), type, data);
 
             oldValue = data ? 1 : 0;
         }
@@ -116,8 +120,8 @@ public class PLCDigitalBlockHandler extends PLCBlockHandler {
      * {@inheritDoc}
      */
     @Override
-    public BlockDataType getBlockDataType() {
-        return isBlockValid(getBlockName()) ? BlockDataType.BIT : BlockDataType.INVALID;
+    public PLCLogoDataType getBlockDataType() {
+        return isBlockValid(getBlockName()) ? PLCLogoDataType.BIT : PLCLogoDataType.INVALID;
     }
 
     /**
@@ -126,6 +130,9 @@ public class PLCDigitalBlockHandler extends PLCBlockHandler {
     @Override
     protected int getAddress(final String name) {
         int address = -1;
+
+        logger.debug("Get address of {} LOGO! for block {} .", getLogoFamily(), name);
+
         if (isBlockValid(name)) {
             final String block = name.trim().split("\\.")[0];
             if (Character.isDigit(block.charAt(1))) {
@@ -148,6 +155,9 @@ public class PLCDigitalBlockHandler extends PLCBlockHandler {
     @Override
     protected int getBit(final String name) {
         int bit = -1;
+
+        logger.debug("Get bit of {} LOGO! for block {} .", getLogoFamily(), name);
+
         if (isBlockValid(name)) {
             final String[] parts = name.trim().split("\\.");
             if (Character.isDigit(parts[0].charAt(1))) {
@@ -195,6 +205,9 @@ public class PLCDigitalBlockHandler extends PLCBlockHandler {
      */
     private int getBase(final String name) {
         int base = 0;
+
+        logger.debug("Get base address of {} LOGO! for block {} .", getLogoFamily(), name);
+
         final String block = name.trim().split("\\.")[0];
         final Map<?, Integer> family = LOGO_MEMORY_BLOCK.get(getLogoFamily());
         if (Character.isDigit(block.charAt(1))) {

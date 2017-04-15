@@ -20,6 +20,7 @@ import org.eclipse.smarthome.core.thing.ThingStatusDetail;
 import org.eclipse.smarthome.core.thing.binding.BaseThingHandler;
 import org.eclipse.smarthome.core.types.Command;
 import org.openhab.binding.plclogo.PLCLogoBindingConstants;
+import org.openhab.binding.plclogo.internal.PLCLogoDataType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,13 +36,6 @@ public abstract class PLCBlockHandler extends BaseThingHandler {
 
     private int address = -1;
     private int bit = -1;
-
-    public enum BlockDataType {
-        INVALID,
-        BIT,
-        WORD,
-        DWORD
-    }
 
     /**
      * {@inheritDoc}
@@ -161,8 +155,8 @@ public abstract class PLCBlockHandler extends BaseThingHandler {
      *
      * @return Data type accepted by configured block
      */
-    abstract public BlockDataType getBlockDataType();
-    
+    abstract public PLCLogoDataType getBlockDataType();
+
     /**
      * Returns configured LOGO! family.
      *

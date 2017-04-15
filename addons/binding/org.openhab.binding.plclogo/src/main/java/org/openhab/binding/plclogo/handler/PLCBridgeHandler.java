@@ -31,8 +31,8 @@ import org.eclipse.smarthome.core.thing.binding.BaseBridgeHandler;
 import org.eclipse.smarthome.core.thing.binding.ThingHandler;
 import org.eclipse.smarthome.core.types.Command;
 import org.eclipse.smarthome.core.types.RefreshType;
-import org.openhab.binding.plclogo.handler.PLCBlockHandler.BlockDataType;
 import org.openhab.binding.plclogo.internal.PLCLogoClient;
+import org.openhab.binding.plclogo.internal.PLCLogoDataType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -81,16 +81,20 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
                             block.setData(S7.GetBitAt(buffer, address, block.getBit()));
                         } else if (handler instanceof PLCAnalogBlockHandler) {
                             final PLCAnalogBlockHandler block = (PLCAnalogBlockHandler) handler;
-                            if (block.getBlockDataType() == BlockDataType.DWORD) {
+                            if (block.getBlockDataType() == PLCLogoDataType.DWORD) {
                                 block.setData(S7.GetDWordAt(buffer, address));
                             } else {
                                 block.setData(S7.GetShortAt(buffer, address));
                             }
+                        } else {
+                            logger.error("Invalid handler type {} found.", handler.getClass().getSimpleName());
                         }
                     }
                 } else {
                     logger.error("Can not read data from LOGO!: {}.", S7Client.ErrorText(result));
                 }
+            } else {
+                logger.error("Either memory block {} or LOGO! client {} is invalid.", memory, client);
             }
         }
     };
@@ -136,7 +140,7 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
                 if (command instanceof DecimalType) {
                     int result = 0;
                     final DecimalType state = (DecimalType) command;
-                    if (handler.getBlockDataType() == BlockDataType.DWORD) {
+                    if (handler.getBlockDataType() == PLCLogoDataType.DWORD) {
                         byte[] buffer = { 0, 0, 0, 0 };
                         S7.SetDWordAt(buffer, 0, state.longValue());
                         result = client.WriteDBArea(1, address, 2, S7Client.S7WLByte, buffer);
@@ -210,7 +214,7 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
                 try {
                     Thread.sleep(100);
                 } catch (InterruptedException exception) {
-                    exception.printStackTrace();
+                    logger.error("Dispose LOGO! bridge handler throw an error: {}.", exception.getMessage());
                     break;
                 }
             }
