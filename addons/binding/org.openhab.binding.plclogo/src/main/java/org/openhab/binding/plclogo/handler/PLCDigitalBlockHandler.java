@@ -166,8 +166,7 @@ public class PLCDigitalBlockHandler extends PLCBlockHandler {
                 bit = Integer.parseInt(parts[0].substring(2));
             }
 
-            final int base = getBase(name);
-            if (base != 0) { // Only VB/VD/VW memory ranges are 0 based
+            if (getBase(name) != 0) { // Only VB/VD/VW memory ranges are 0 based
                 bit = (bit - 1) % 8;
             } else {
                 bit = Integer.parseInt(parts[1]);

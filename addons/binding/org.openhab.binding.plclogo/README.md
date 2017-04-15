@@ -79,7 +79,8 @@ Follow block names are allowed for analog things:
 | Marker         | `AM[1-16]`    | `AM[1-64]`  |
 | Network input  |               | `NAI[1-32]` |
 | Network output |               | `NAQ[1-16]` |
-| Memory         | `VW[0-849]`   | `VW[0-849]` |
+| Memory (DWORD) | `VD[0-847]`   | `VD[0-847]` |
+| Memory (WORD)  | `VW[0-849]`   | `VW[0-849]` |
 
 ## Channels
 Each digital thing have only one channel `state`. Dependend on configured block type,
