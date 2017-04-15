@@ -116,10 +116,18 @@ public class PLCDigitalBlockHandler extends PLCBlockHandler {
      * {@inheritDoc}
      */
     @Override
+    public BlockDataType getBlockDataType() {
+        return isBlockValid(getBlockName()) ? BlockDataType.BIT : BlockDataType.INVALID;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     protected int getAddress(final String name) {
         int address = -1;
         if (isBlockValid(name)) {
-            final String block = name.split("\\.")[0];
+            final String block = name.trim().split("\\.")[0];
             if (Character.isDigit(block.charAt(1))) {
                 address = Integer.parseInt(block.substring(1));
             } else if (Character.isDigit(block.charAt(2))) {
@@ -127,7 +135,7 @@ public class PLCDigitalBlockHandler extends PLCBlockHandler {
             }
 
             final int base = getBase(name);
-            if (base != 0) { // Only VB/VW memory ranges are 0 based
+            if (base != 0) { // Only VB/VD/VW memory ranges are 0 based
                 address = base + (address - 1) / 8;
             }
         }
@@ -141,7 +149,7 @@ public class PLCDigitalBlockHandler extends PLCBlockHandler {
     protected int getBit(final String name) {
         int bit = -1;
         if (isBlockValid(name)) {
-            final String[] parts = name.split("\\.");
+            final String[] parts = name.trim().split("\\.");
             if (Character.isDigit(parts[0].charAt(1))) {
                 bit = Integer.parseInt(parts[0].substring(1));
             } else if (Character.isDigit(parts[0].charAt(2))) {
@@ -149,7 +157,7 @@ public class PLCDigitalBlockHandler extends PLCBlockHandler {
             }
 
             final int base = getBase(name);
-            if (base != 0) { // Only VB/VW memory ranges are 0 based
+            if (base != 0) { // Only VB/VD/VW memory ranges are 0 based
                 bit = (bit - 1) % 8;
             } else {
                 bit = Integer.parseInt(parts[1]);
@@ -187,7 +195,7 @@ public class PLCDigitalBlockHandler extends PLCBlockHandler {
      */
     private int getBase(final String name) {
         int base = 0;
-        final String block = name.split("\\.")[0];
+        final String block = name.trim().split("\\.")[0];
         final Map<?, Integer> family = LOGO_MEMORY_BLOCK.get(getLogoFamily());
         if (Character.isDigit(block.charAt(1))) {
             base = family.get(block.substring(0, 1));

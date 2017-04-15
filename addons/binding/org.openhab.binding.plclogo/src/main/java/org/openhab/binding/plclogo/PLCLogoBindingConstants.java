@@ -52,6 +52,7 @@ public class PLCLogoBindingConstants {
         {
             // @formatter:off
             put(  "VB", 0);
+            put(  "VD", 0);
             put(  "VW", 0);
             put(   "I", 923); // Digital inputs starts at 923 for 3 bytes
             put(   "Q", 942); // Digital outputs starts at 942 for 2 bytes
@@ -69,6 +70,7 @@ public class PLCLogoBindingConstants {
         {
             // @formatter:off
             put(  "VB", 0);
+            put(  "VD", 0);
             put(  "VW", 0);
             put(   "I", 1024); // Digital inputs starts at 1024 for 8 bytes
             put(   "Q", 1064); // Digital outputs starts at 1064 for 8 bytes

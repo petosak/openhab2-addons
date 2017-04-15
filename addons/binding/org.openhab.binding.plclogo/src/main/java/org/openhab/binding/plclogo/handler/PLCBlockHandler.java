@@ -36,6 +36,13 @@ public abstract class PLCBlockHandler extends BaseThingHandler {
     private int address = -1;
     private int bit = -1;
 
+    public enum BlockDataType {
+        INVALID,
+        BIT,
+        WORD,
+        DWORD
+    }
+
     /**
      * {@inheritDoc}
      */
@@ -123,14 +130,14 @@ public abstract class PLCBlockHandler extends BaseThingHandler {
         Object entry = getConfigParameter(LOGO_BLOCK);
         if (entry instanceof String) {
             final String name = (String) entry;
-            return name.toUpperCase();
+            return name.trim().toUpperCase();
         }
         return null;
     }
 
     /**
      * Returns configured LOGO! block kind.
-     * Can be VB, VW, I, Q, M, AI, AQ, AM, NI, NAI, NQ or NAQ
+     * Can be VB, VD, VW, I, Q, M, AI, AQ, AM, NI, NAI, NQ or NAQ
      *
      * @see PLCLogoBindingConstants#LOGO_MEMORY_0BA7
      * @see PLCLogoBindingConstants#LOGO_MEMORY_0BA8
@@ -149,6 +156,14 @@ public abstract class PLCBlockHandler extends BaseThingHandler {
     }
 
     /**
+     * Returns data type accepted by LOGO! block.
+     * Can be BIT for digital blocks and WORD/DWORD for analog
+     *
+     * @return Data type accepted by configured block
+     */
+    abstract public BlockDataType getBlockDataType();
+    
+    /**
      * Returns configured LOGO! family.
      *
      * @see PLCLogoBindingConstants#LOGO_0BA7
@@ -156,9 +171,9 @@ public abstract class PLCBlockHandler extends BaseThingHandler {
      * @return Configured LOGO! family
      */
     public String getLogoFamily() {
-        Bridge bridge = getBridge();
+        final Bridge bridge = getBridge();
         if (bridge != null) {
-            PLCBridgeHandler handler = (PLCBridgeHandler) bridge.getHandler();
+            final PLCBridgeHandler handler = (PLCBridgeHandler) bridge.getHandler();
             return handler.getLogoFamily();
         }
         return null;
@@ -174,7 +189,7 @@ public abstract class PLCBlockHandler extends BaseThingHandler {
         Object entry = getConfigParameter(FORCE_UPDATE);
         if (entry instanceof String) {
             final String value = (String) entry;
-            result = Boolean.parseBoolean(value.toLowerCase());
+            result = Boolean.parseBoolean(value.trim().toLowerCase());
         }
         return result;
     }

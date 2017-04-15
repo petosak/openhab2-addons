@@ -38,8 +38,8 @@ public class PLCAnalogBlockHandler extends PLCBlockHandler {
 
     public final static Set<ThingTypeUID> SUPPORTED_THING_TYPES = Collections.singleton(THING_TYPE_ANALOG);
 
-    int threshold = 0;
-    int oldValue = Integer.MAX_VALUE;
+    long threshold = 0;
+    long oldValue = Long.MAX_VALUE;
 
     /**
      * {@inheritDoc}
@@ -97,7 +97,7 @@ public class PLCAnalogBlockHandler extends PLCBlockHandler {
         logger.debug("Dispose LOGO! analog handler.");
         super.dispose();
 
-        oldValue = Integer.MAX_VALUE;
+        oldValue = Long.MAX_VALUE;
         threshold = 0;
     }
 
@@ -106,7 +106,7 @@ public class PLCAnalogBlockHandler extends PLCBlockHandler {
      *
      * @param data Data value to update with
      */
-    public void setData(final short data) {
+    public void setData(final long data) {
         if ((Math.abs(oldValue - data) >= threshold) || isUpdateForcing()) {
             final Channel channel = thing.getChannel(ANALOG_CHANNEL_ID);
 
@@ -126,10 +126,22 @@ public class PLCAnalogBlockHandler extends PLCBlockHandler {
      * {@inheritDoc}
      */
     @Override
+    public BlockDataType getBlockDataType() {
+        final String kind = getBlockKind();
+        if ((kind != null) && isBlockValid(getBlockName())) {
+            return kind.equalsIgnoreCase("VD") ? BlockDataType.DWORD : BlockDataType.WORD;
+        }
+        return BlockDataType.INVALID;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     protected int getAddress(final String name) {
         int address = -1;
         if (isBlockValid(name)) {
-            final String block = name.split("\\.")[0];
+            final String block = name.trim().split("\\.")[0];
             if (Character.isDigit(block.charAt(2))) {
                 address = Integer.parseInt(block.substring(2));
             } else if (Character.isDigit(block.charAt(3))) {
@@ -137,7 +149,7 @@ public class PLCAnalogBlockHandler extends PLCBlockHandler {
             }
 
             final int base = getBase(name);
-            if (base != 0) { // Only VB/VW memory ranges are 0 based
+            if (base != 0) { // Only VB/VD/VW memory ranges are 0 based
                 address = base + (address - 1) * 2;
             }
         }
@@ -162,7 +174,7 @@ public class PLCAnalogBlockHandler extends PLCBlockHandler {
             valid = valid || name.startsWith("AI") || name.startsWith("NAI"); // Inputs
             valid = valid || name.startsWith("AQ") || name.startsWith("NAQ"); // Outputs
             valid = valid || name.startsWith("AM"); // Markers
-            if (!valid && name.startsWith("VW")) { // Memory block
+            if (!valid && (name.startsWith("VW") || name.startsWith("VD"))) { // Memory block
                 String[] memparts = name.split("\\.");
                 valid = (memparts.length == 1);
             }
@@ -178,7 +190,7 @@ public class PLCAnalogBlockHandler extends PLCBlockHandler {
      */
     private int getBase(final String name) {
         int base = 0;
-        final String block = name.split("\\.")[0];
+        final String block = name.trim().split("\\.")[0];
         final Map<?, Integer> family = LOGO_MEMORY_BLOCK.get(getLogoFamily());
         if (Character.isDigit(block.charAt(2))) {
             base = family.get(block.substring(0, 2));

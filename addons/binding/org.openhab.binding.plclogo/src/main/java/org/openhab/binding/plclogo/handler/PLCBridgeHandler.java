@@ -31,6 +31,7 @@ import org.eclipse.smarthome.core.thing.binding.BaseBridgeHandler;
 import org.eclipse.smarthome.core.thing.binding.ThingHandler;
 import org.eclipse.smarthome.core.types.Command;
 import org.eclipse.smarthome.core.types.RefreshType;
+import org.openhab.binding.plclogo.handler.PLCBlockHandler.BlockDataType;
 import org.openhab.binding.plclogo.internal.PLCLogoClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -73,12 +74,18 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
                         if (handler == null) {
                             continue;
                         }
+
+                        final int address = handler.getAddress();
                         if (handler instanceof PLCDigitalBlockHandler) {
                             final PLCDigitalBlockHandler block = (PLCDigitalBlockHandler) handler;
-                            block.setData(S7.GetBitAt(buffer, block.getAddress(), block.getBit()));
+                            block.setData(S7.GetBitAt(buffer, address, block.getBit()));
                         } else if (handler instanceof PLCAnalogBlockHandler) {
                             final PLCAnalogBlockHandler block = (PLCAnalogBlockHandler) handler;
-                            block.setData((short) S7.GetShortAt(buffer, block.getAddress()));
+                            if (block.getBlockDataType() == BlockDataType.DWORD) {
+                                block.setData(S7.GetDWordAt(buffer, address));
+                            } else {
+                                block.setData(S7.GetShortAt(buffer, address));
+                            }
                         }
                     }
                 } else {
@@ -110,7 +117,6 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
             if (DIGITAL_CHANNEL_ID.equals(channelUID.getId())) {
                 if ((command instanceof OnOffType) || (command instanceof OpenClosedType)) {
                     byte[] buffer = { 0 };
-
                     if (command instanceof OnOffType) {
                         final OnOffType state = (OnOffType) command;
                         S7.SetBitAt(buffer, 0, 0, state == OnOffType.ON);
@@ -128,12 +134,17 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
                 }
             } else if (ANALOG_CHANNEL_ID.equals(channelUID.getId())) {
                 if (command instanceof DecimalType) {
-                    byte[] buffer = { 0, 0 };
-
+                    int result = 0;
                     final DecimalType state = (DecimalType) command;
-                    S7.SetShortAt(buffer, 0, (short) state.intValue());
-
-                    int result = client.WriteDBArea(1, address, 2, S7Client.S7WLByte, buffer);
+                    if (handler.getBlockDataType() == BlockDataType.DWORD) {
+                        byte[] buffer = { 0, 0, 0, 0 };
+                        S7.SetDWordAt(buffer, 0, state.longValue());
+                        result = client.WriteDBArea(1, address, 2, S7Client.S7WLByte, buffer);
+                    } else {
+                        byte[] buffer = { 0, 0 };
+                        S7.SetShortAt(buffer, 0, state.intValue());
+                        result = client.WriteDBArea(1, address, 2, S7Client.S7WLByte, buffer);
+                    }
                     if (result != 0) {
                         logger.error("Can not write data to LOGO!: {}.", S7Client.ErrorText(result));
                     }
@@ -242,9 +253,10 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
      * @return Configured Siemens LOGO! family
      */
     public String getLogoFamily() {
-        Object family = getConfigParameter(LOGO_FAMILY);
-        if (family instanceof String) {
-            return (String) family;
+        Object value = getConfigParameter(LOGO_FAMILY);
+        if (value instanceof String) {
+            final String family = (String) value;
+            return family.trim();
         }
         return null;
     }
