@@ -20,8 +20,8 @@
           <label>LOGO! family</label>
           <description>LOGO! PLC hardware family version</description>
           <options>
-            <option value="OBA7">OBA7</option>
-            <option value="OBA8">OBA8</option>
+            <option value="0BA7">0BA7</option>
+            <option value="0BA8">0BA8</option>
           </options>
           <required>true</required>
         </parameter>
