@@ -55,46 +55,54 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
      * S7 client this bridge belongs to
      */
     private volatile PLCLogoClient client = null;
-    private volatile Set<PLCBlockHandler> handlers = new HashSet<PLCBlockHandler>();
+    private Set<PLCBlockHandler> handlers = new HashSet<PLCBlockHandler>();
 
     private ScheduledFuture<?> job = null;
     private Runnable reader = new Runnable() {
         // Buffer for read operations
-        final private byte[] buffer = new byte[2048];
+        private final byte[] buffer = new byte[2048];
 
         @Override
         public void run() {
-            final Map<?, Integer> memory = LOGO_MEMORY_BLOCK.get(getLogoFamily());
-            if ((memory != null) && (client != null)) {
-                final Integer size = memory.get("SIZE");
-                int result = client.ReadDBArea(1, 0, size.intValue(), S7Client.S7WLByte, buffer);
+            try {
+                final Map<?, Integer> memory = LOGO_MEMORY_BLOCK.get(getLogoFamily());
+                if ((memory != null) && (client != null)) {
+                    final Integer size = memory.get("SIZE");
+                    int result = client.ReadDBArea(1, 0, size.intValue(), S7Client.S7WLByte, buffer);
 
-                if (result == 0) {
-                    for (PLCBlockHandler handler : handlers) {
-                        if (handler == null) {
-                            continue;
-                        }
+                    if (result == 0) {
+                        synchronized (handlers) {
+                            for (PLCBlockHandler handler : handlers) {
+                                if (handler == null) {
+                                    logger.warn("Invalid handler found.");
+                                    continue;
+                                }
 
-                        final int address = handler.getAddress();
-                        if (handler instanceof PLCDigitalBlockHandler) {
-                            final PLCDigitalBlockHandler block = (PLCDigitalBlockHandler) handler;
-                            block.setData(S7.GetBitAt(buffer, address, block.getBit()));
-                        } else if (handler instanceof PLCAnalogBlockHandler) {
-                            final PLCAnalogBlockHandler block = (PLCAnalogBlockHandler) handler;
-                            if (block.getBlockDataType() == PLCLogoDataType.DWORD) {
-                                block.setData(S7.GetDWordAt(buffer, address));
-                            } else {
-                                block.setData(S7.GetShortAt(buffer, address));
+                                final int address = handler.getAddress();
+                                if (handler instanceof PLCDigitalBlockHandler) {
+                                    final PLCDigitalBlockHandler block = (PLCDigitalBlockHandler) handler;
+                                    block.setData(S7.GetBitAt(buffer, address, handler.getBit()));
+                                } else if (handler instanceof PLCAnalogBlockHandler) {
+                                    final PLCAnalogBlockHandler block = (PLCAnalogBlockHandler) handler;
+                                    if (block.getBlockDataType() == PLCLogoDataType.DWORD) {
+                                        block.setData(S7.GetDWordAt(buffer, address));
+                                    } else {
+                                        block.setData(S7.GetShortAt(buffer, address));
+                                    }
+                                } else {
+                                    logger.error("Invalid handler type {} found.", handler.getClass().getSimpleName());
+                                }
                             }
-                        } else {
-                            logger.error("Invalid handler type {} found.", handler.getClass().getSimpleName());
                         }
+                    } else {
+                        logger.error("Can not read data from LOGO!: {}.", S7Client.ErrorText(result));
                     }
                 } else {
-                    logger.error("Can not read data from LOGO!: {}.", S7Client.ErrorText(result));
+                    logger.error("Either memory block {} or LOGO! client {} is invalid.", memory, client);
                 }
-            } else {
-                logger.error("Either memory block {} or LOGO! client {} is invalid.", memory, client);
+                // Thread.sleep(1);
+            } catch (Throwable throwable) {
+                logger.error("Reader thread was interrupted: {}.", throwable.getMessage());
             }
         }
     };
@@ -232,10 +240,15 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
     public void childHandlerInitialized(ThingHandler childHandler, Thing childThing) {
         super.childHandlerInitialized(childHandler, childThing);
         if (childHandler instanceof PLCBlockHandler) {
-            if (!handlers.contains(childHandler)) {
-                handlers.add((PLCBlockHandler) childHandler);
-            } else {
-                logger.info("Handler {} already registered.", childThing.getUID());
+            final PLCBlockHandler handler = (PLCBlockHandler) childHandler;
+            synchronized (handlers) {
+                final String name = handler.getBlockName();
+                if (!handlers.contains(handler)) {
+                    handlers.add(handler);
+                    logger.debug("Insert handler for block {}.", name);
+                } else {
+                    logger.info("Handler {} for block {} already registered.", childThing.getUID(), name);
+                }
             }
         }
     }
@@ -245,8 +258,17 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
      */
     @Override
     public void childHandlerDisposed(ThingHandler childHandler, Thing childThing) {
-        if (handlers.contains(childHandler)) {
-            handlers.remove(childHandler);
+        if (childHandler instanceof PLCBlockHandler) {
+            final PLCBlockHandler handler = (PLCBlockHandler) childHandler;
+            synchronized (handlers) {
+                final String name = handler.getBlockName();
+                if (handlers.contains(handler)) {
+                    handlers.remove(handler);
+                    logger.debug("Remove handler for block {}.", name);
+                } else {
+                    logger.info("Handler {} for block {} already disposed.", childThing.getUID(), name);
+                }
+            }
         }
         super.childHandlerDisposed(childHandler, childThing);
     }
