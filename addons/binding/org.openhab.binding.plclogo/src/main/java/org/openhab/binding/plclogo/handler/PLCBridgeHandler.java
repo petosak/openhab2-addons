@@ -59,7 +59,7 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
     private Set<PLCBlockHandler> handlers = new HashSet<PLCBlockHandler>();
 
     private ScheduledFuture<?> job = null;
-    private Runnable reader = new Runnable() {
+    private final Runnable reader = new Runnable() {
         // Buffer for read operations
         private final byte[] buffer = new byte[2048];
 
@@ -75,7 +75,7 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
                         synchronized (handlers) {
                             for (PLCBlockHandler handler : handlers) {
                                 if (handler == null) {
-                                    logger.warn("Invalid handler found.");
+                                    logger.warn("Skip processing of invalid handler.");
                                     continue;
                                 }
 
@@ -173,7 +173,7 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
      * {@inheritDoc}
      */
     @Override
-    public void initialize() {
+    public synchronized void initialize() {
         logger.debug("Initialize LOGO! bridge handler.");
         final Configuration config = getConfig();
 
@@ -189,21 +189,18 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
         }
 
         if (configured) {
-            super.initialize();
-            String host = null;
-            Object entry = config.get(LOGO_HOST);
-            if (entry instanceof String) {
-                host = (String) entry;
-            }
-
             Integer interval = Integer.valueOf(100);
-            entry = getConfigParameter(LOGO_REFRESH_INTERVAL);
+            Object entry = getConfigParameter(LOGO_REFRESH_INTERVAL);
             if (entry instanceof String) {
                 interval = Integer.decode((String) entry);
             }
 
-            logger.info("Creating new reader job for {} with interval {} ms.", host, interval.toString());
-            job = scheduler.scheduleWithFixedDelay(reader, 100, interval, TimeUnit.MILLISECONDS);
+            if (job == null) {
+                final String host = getLogoHost();
+                logger.info("Creating new reader job for {} with interval {} ms.", host, interval.toString());
+                job = scheduler.scheduleWithFixedDelay(reader, 100, interval, TimeUnit.MILLISECONDS);
+            }
+            super.initialize();
         } else {
             final String message = "Can not initialize LOGO!. Please, check parameter.";
             updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.CONFIGURATION_ERROR, message);
@@ -215,7 +212,7 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
      * {@inheritDoc}
      */
     @Override
-    public void dispose() {
+    public synchronized void dispose() {
         logger.debug("Dispose LOGO! bridge handler.");
         super.dispose();
 
@@ -230,7 +227,9 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
                 }
             }
             job = null;
+            logger.info("Destroy reader job for {}.", getLogoHost());
         }
+
         if (disconnect()) {
             client = null;
         }
@@ -298,11 +297,7 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
     private synchronized boolean connect() {
         Object entry = null;
         if (!client.Connected) {
-            String host = null;
-            entry = getConfigParameter(LOGO_HOST);
-            if (entry instanceof String) {
-                host = (String) entry;
-            }
+            final String host = getLogoHost();
 
             Integer local = null;
             entry = getConfigParameter(LOGO_LOCAL_TSAP);
@@ -336,6 +331,20 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
             result = !client.Connected;
         }
         return result;
+    }
+
+    /**
+     * Returns configured Siemens LOGO! host.
+     *
+     * @return Configured Siemens LOGO! host
+     */
+    private String getLogoHost() {
+        Object value = getConfigParameter(LOGO_HOST);
+        if (value instanceof String) {
+            final String host = (String) value;
+            return host.trim();
+        }
+        return null;
     }
 
     private Object getConfigParameter(final String name) {
