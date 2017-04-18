@@ -21,6 +21,7 @@ import java.net.SocketException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Enumeration;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ExecutorService;
@@ -60,10 +61,8 @@ public class PLCDiscoveryService extends AbstractDiscoveryService {
         private final String host;
 
         public Runner(final String address) {
+            Objects.requireNonNull(address, "IP may not be null");
             this.host = address;
-            if (host == null) {
-                throw new RuntimeException("IP may not be null!");
-            }
         }
 
         /**
@@ -78,7 +77,7 @@ public class PLCDiscoveryService extends AbstractDiscoveryService {
                 if (!address.isReachable(CONNECTION_TIMEOUT / 5)) {
                     address = null;
                 }
-            } catch (IOException | NullPointerException exception) {
+            } catch (IOException exception) {
                 logger.debug("LOGO! device not found at: {}.", host);
                 address = null;
             }

@@ -1,5 +1,6 @@
 /**
- * Copyright (c) 2014-2017 by the respective copyright holders.
+ * Copyright (c) 2010-2017 by the respective copyright holders.
+ *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -36,6 +37,10 @@ public abstract class PLCBlockHandler extends BaseThingHandler {
 
     private int address = -1;
     private int bit = -1;
+
+    // Possible block directions
+    protected static final String INPUT = "Input";
+    protected static final String OUTPUT = "Output";
 
     /**
      * {@inheritDoc}
@@ -155,7 +160,7 @@ public abstract class PLCBlockHandler extends BaseThingHandler {
      *
      * @return Data type accepted by configured block
      */
-    abstract public PLCLogoDataType getBlockDataType();
+    public abstract PLCLogoDataType getBlockDataType();
 
     /**
      * Returns configured LOGO! family.
@@ -194,7 +199,7 @@ public abstract class PLCBlockHandler extends BaseThingHandler {
      * @param name Name of the LOGO! block
      * @return Calculated address offset
      */
-    abstract protected int getAddress(final String name);
+    protected abstract int getAddress(final String name);
 
     /**
      * Calculate bit within address for block with given name.
@@ -202,7 +207,7 @@ public abstract class PLCBlockHandler extends BaseThingHandler {
      * @param name Name of the LOGO! block
      * @return Calculated bit
      */
-    abstract protected int getBit(final String name);
+    protected abstract int getBit(final String name);
 
     /**
      * Checks, if given name for the block is valid.
@@ -210,7 +215,7 @@ public abstract class PLCBlockHandler extends BaseThingHandler {
      * @param name Name of the LOGO! block
      * @return True, if the name is valid and false otherwise
      */
-    abstract protected boolean isBlockValid(final String name);
+    protected abstract boolean isBlockValid(final String name);
 
     private Object getConfigParameter(final String name) {
         Object result = null;

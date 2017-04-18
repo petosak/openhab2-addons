@@ -1,5 +1,6 @@
 /**
- * Copyright (c) 2014-2017 by the respective copyright holders.
+ * Copyright (c) 2010-2017 by the respective copyright holders.
+ *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -37,7 +38,7 @@ public class PLCAnalogBlockHandler extends PLCBlockHandler {
 
     private final Logger logger = LoggerFactory.getLogger(PLCAnalogBlockHandler.class);
 
-    public final static Set<ThingTypeUID> SUPPORTED_THING_TYPES = Collections.singleton(THING_TYPE_ANALOG);
+    public static final Set<ThingTypeUID> SUPPORTED_THING_TYPES = Collections.singleton(THING_TYPE_ANALOG);
 
     long threshold = 0;
     long oldValue = Long.MAX_VALUE;
@@ -54,9 +55,6 @@ public class PLCAnalogBlockHandler extends PLCBlockHandler {
      */
     @Override
     public void initialize() {
-        final String INPUT = "Input";
-        final String OUTPUT = "Output";
-
         Configuration config = getConfig();
         if (config.containsKey("threshold")) {
             Object entry = config.get("threshold");
@@ -75,8 +73,8 @@ public class PLCAnalogBlockHandler extends PLCBlockHandler {
             builder = builder.withLabel(getBridge().getLabel() + ": " + text + " " + name);
 
             if (thing.getChannel(ANALOG_CHANNEL_ID) == null) {
-                final ChannelUID UID = new ChannelUID(getThing().getUID(), ANALOG_CHANNEL_ID);
-                ChannelBuilder channel = ChannelBuilder.create(UID, "Number");
+                final ChannelUID uid = new ChannelUID(getThing().getUID(), ANALOG_CHANNEL_ID);
+                ChannelBuilder channel = ChannelBuilder.create(uid, "Number");
                 channel = channel.withLabel(name);
                 channel = channel.withDescription("Analog " + text);
                 builder = builder.withChannel(channel.build());

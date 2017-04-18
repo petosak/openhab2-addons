@@ -1,5 +1,6 @@
 /**
- * Copyright (c) 2014-2017 by the respective copyright holders.
+ * Copyright (c) 2010-2017 by the respective copyright holders.
+ *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -49,7 +50,7 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
 
     private final Logger logger = LoggerFactory.getLogger(PLCBridgeHandler.class);
 
-    public final static Set<ThingTypeUID> SUPPORTED_THING_TYPES = Collections.singleton(THING_TYPE_DEVICE);
+    public static final Set<ThingTypeUID> SUPPORTED_THING_TYPES = Collections.singleton(THING_TYPE_DEVICE);
 
     /**
      * S7 client this bridge belongs to
@@ -100,9 +101,11 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
                 } else {
                     logger.error("Either memory block {} or LOGO! client {} is invalid.", memory, client);
                 }
-                // Thread.sleep(1);
-            } catch (Throwable throwable) {
-                logger.error("Reader thread was interrupted: {}.", throwable.getMessage());
+            } catch (Exception exception) {
+                logger.error("Reader thread got exception: {}.", exception.getMessage());
+            } catch (Error error) {
+                logger.error("Reader thread got error: {}.", error.getMessage());
+                throw error;
             }
         }
     };
@@ -151,7 +154,7 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
                     if (handler.getBlockDataType() == PLCLogoDataType.DWORD) {
                         byte[] buffer = { 0, 0, 0, 0 };
                         S7.SetDWordAt(buffer, 0, state.longValue());
-                        result = client.WriteDBArea(1, address, 2, S7Client.S7WLByte, buffer);
+                        result = client.WriteDBArea(1, address, 4, S7Client.S7WLByte, buffer);
                     } else {
                         byte[] buffer = { 0, 0 };
                         S7.SetShortAt(buffer, 0, state.intValue());

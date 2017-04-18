@@ -1,5 +1,6 @@
 /**
- * Copyright (c) 2014-2017 by the respective copyright holders.
+ * Copyright (c) 2010-2017 by the respective copyright holders.
+ *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -37,7 +38,7 @@ public class PLCDigitalBlockHandler extends PLCBlockHandler {
 
     private final Logger logger = LoggerFactory.getLogger(PLCDigitalBlockHandler.class);
 
-    public final static Set<ThingTypeUID> SUPPORTED_THING_TYPES = Collections.singleton(THING_TYPE_DIGITAL);
+    public static final Set<ThingTypeUID> SUPPORTED_THING_TYPES = Collections.singleton(THING_TYPE_DIGITAL);
 
     int oldValue = Integer.MAX_VALUE;
 
@@ -50,9 +51,6 @@ public class PLCDigitalBlockHandler extends PLCBlockHandler {
      */
     @Override
     public void initialize() {
-        final String INPUT = "Input";
-        final String OUTPUT = "Output";
-
         final String name = getBlockName();
         if (isBlockValid(name)) {
             final String kind = getBlockKind();
@@ -63,9 +61,9 @@ public class PLCDigitalBlockHandler extends PLCBlockHandler {
             builder = builder.withLabel(getBridge().getLabel() + ": " + text + " " + name);
 
             if (thing.getChannel(DIGITAL_CHANNEL_ID) == null) {
-                final ChannelUID UID = new ChannelUID(getThing().getUID(), DIGITAL_CHANNEL_ID);
+                final ChannelUID uid = new ChannelUID(getThing().getUID(), DIGITAL_CHANNEL_ID);
                 final String type = INPUT.equalsIgnoreCase(text) ? "Contact" : "Switch";
-                ChannelBuilder channel = ChannelBuilder.create(UID, type);
+                ChannelBuilder channel = ChannelBuilder.create(uid, type);
                 channel = channel.withLabel(name);
                 channel = channel.withDescription("Digital " + text);
                 builder = builder.withChannel(channel.build());
