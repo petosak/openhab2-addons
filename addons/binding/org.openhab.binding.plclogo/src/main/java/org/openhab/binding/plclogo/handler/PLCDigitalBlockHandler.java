@@ -14,6 +14,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 
+import org.eclipse.smarthome.config.core.Configuration;
 import org.eclipse.smarthome.core.library.types.OnOffType;
 import org.eclipse.smarthome.core.library.types.OpenClosedType;
 import org.eclipse.smarthome.core.thing.Channel;
@@ -24,6 +25,7 @@ import org.eclipse.smarthome.core.thing.ThingStatusDetail;
 import org.eclipse.smarthome.core.thing.ThingTypeUID;
 import org.eclipse.smarthome.core.thing.binding.builder.ChannelBuilder;
 import org.eclipse.smarthome.core.thing.binding.builder.ThingBuilder;
+import org.openhab.binding.plclogo.config.PLCLogoDigitalConfiguration;
 import org.openhab.binding.plclogo.internal.PLCLogoDataType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,6 +44,7 @@ public class PLCDigitalBlockHandler extends PLCBlockHandler {
 
     public static final Set<ThingTypeUID> SUPPORTED_THING_TYPES = Collections.singleton(THING_TYPE_DIGITAL);
 
+    PLCLogoDigitalConfiguration config = getConfigAs(PLCLogoDigitalConfiguration.class);
     int oldValue = Integer.MAX_VALUE;
 
     public PLCDigitalBlockHandler(Thing thing) {
@@ -100,7 +103,7 @@ public class PLCDigitalBlockHandler extends PLCBlockHandler {
             final boolean value = S7.GetBitAt(data, 0, getBit());
             logger.debug("Block {} received {}.", getBlockName(), value);
 
-            if ((oldValue != (value ? 1 : 0)) || isUpdateForcing()) {
+            if ((oldValue != (value ? 1 : 0)) || config.isUpdateForced()) {
                 final Channel channel = thing.getChannel(DIGITAL_CHANNEL_ID);
 
                 final String type = channel.getAcceptedItemType();
@@ -124,8 +127,25 @@ public class PLCDigitalBlockHandler extends PLCBlockHandler {
      * {@inheritDoc}
      */
     @Override
+    public String getBlockName() {
+        return config.getBlockName();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public PLCLogoDataType getBlockDataType() {
         return isBlockValid(getBlockName()) ? PLCLogoDataType.BIT : PLCLogoDataType.INVALID;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void updateConfiguration(Configuration configuration) {
+        super.updateConfiguration(configuration);
+        config = getConfigAs(PLCLogoDigitalConfiguration.class);
     }
 
     /**

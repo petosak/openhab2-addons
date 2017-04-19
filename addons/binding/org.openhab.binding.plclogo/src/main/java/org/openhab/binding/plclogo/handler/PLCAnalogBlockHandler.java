@@ -24,6 +24,7 @@ import org.eclipse.smarthome.core.thing.ThingStatusDetail;
 import org.eclipse.smarthome.core.thing.ThingTypeUID;
 import org.eclipse.smarthome.core.thing.binding.builder.ChannelBuilder;
 import org.eclipse.smarthome.core.thing.binding.builder.ThingBuilder;
+import org.openhab.binding.plclogo.config.PLCLogoAnalogConfiguration;
 import org.openhab.binding.plclogo.internal.PLCLogoDataType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,7 +43,7 @@ public class PLCAnalogBlockHandler extends PLCBlockHandler {
 
     public static final Set<ThingTypeUID> SUPPORTED_THING_TYPES = Collections.singleton(THING_TYPE_ANALOG);
 
-    long threshold = 0;
+    PLCLogoAnalogConfiguration config = getConfigAs(PLCLogoAnalogConfiguration.class);
     long oldValue = Long.MAX_VALUE;
 
     /**
@@ -57,14 +58,6 @@ public class PLCAnalogBlockHandler extends PLCBlockHandler {
      */
     @Override
     public void initialize() {
-        Configuration config = getConfig();
-        if (config.containsKey("threshold")) {
-            Object entry = config.get("threshold");
-            if (entry instanceof String) {
-                threshold = Integer.decode((String) entry).intValue();
-            }
-        }
-
         final String name = getBlockName();
         if (isBlockValid(name)) {
             final String kind = getBlockKind();
@@ -100,7 +93,6 @@ public class PLCAnalogBlockHandler extends PLCBlockHandler {
         super.dispose();
 
         oldValue = Long.MAX_VALUE;
-        threshold = 0;
     }
 
     /**
@@ -112,7 +104,7 @@ public class PLCAnalogBlockHandler extends PLCBlockHandler {
             final long value = data.length == 2 ? S7.GetShortAt(data, 0) : S7.GetDWordAt(data, 0);
             logger.debug("Block {} received {}.", getBlockName(), value);
 
-            if ((Math.abs(oldValue - value) >= threshold) || isUpdateForcing()) {
+            if ((Math.abs(oldValue - value) >= config.getThreshold()) || config.isUpdateForced()) {
                 final Channel channel = thing.getChannel(ANALOG_CHANNEL_ID);
 
                 final String type = channel.getAcceptedItemType();
@@ -134,12 +126,29 @@ public class PLCAnalogBlockHandler extends PLCBlockHandler {
      * {@inheritDoc}
      */
     @Override
+    public String getBlockName() {
+        return config.getBlockName();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public PLCLogoDataType getBlockDataType() {
         final String kind = getBlockKind();
         if ((kind != null) && isBlockValid(getBlockName())) {
             return kind.equalsIgnoreCase("VD") ? PLCLogoDataType.DWORD : PLCLogoDataType.WORD;
         }
         return PLCLogoDataType.INVALID;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void updateConfiguration(Configuration configuration) {
+        super.updateConfiguration(configuration);
+        config = getConfigAs(PLCLogoAnalogConfiguration.class);
     }
 
     /**

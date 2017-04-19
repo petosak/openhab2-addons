@@ -33,6 +33,7 @@ import org.eclipse.smarthome.core.thing.binding.BaseBridgeHandler;
 import org.eclipse.smarthome.core.thing.binding.ThingHandler;
 import org.eclipse.smarthome.core.types.Command;
 import org.eclipse.smarthome.core.types.RefreshType;
+import org.openhab.binding.plclogo.config.PLCLogoBridgeConfiguration;
 import org.openhab.binding.plclogo.internal.PLCLogoClient;
 import org.openhab.binding.plclogo.internal.PLCLogoDataType;
 import org.slf4j.Logger;
@@ -58,6 +59,7 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
      */
     private volatile PLCLogoClient client = null;
     private Set<PLCBlockHandler> handlers = new HashSet<PLCBlockHandler>();
+    PLCLogoBridgeConfiguration config = getConfigAs(PLCLogoBridgeConfiguration.class);
 
     private ScheduledFuture<?> job = null;
     private final Runnable reader = new Runnable() {
@@ -208,11 +210,10 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
     @Override
     public synchronized void initialize() {
         logger.debug("Initialize LOGO! bridge handler.");
-        final Configuration config = getConfig();
 
-        boolean configured = config.containsKey(LOGO_HOST);
-        configured = configured && config.containsKey(LOGO_LOCAL_TSAP);
-        configured = configured && config.containsKey(LOGO_REMOTE_TSAP);
+        boolean configured = (config.getAddress() != null);
+        configured = configured && (config.getLocalTSAP() != null);
+        configured = configured && (config.getRemoteTSAP() != null);
 
         if (configured) {
             if (client == null) {
@@ -222,14 +223,9 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
         }
 
         if (configured) {
-            Integer interval = Integer.valueOf(100);
-            Object entry = getConfigParameter(LOGO_REFRESH_INTERVAL);
-            if (entry instanceof String) {
-                interval = Integer.decode((String) entry);
-            }
-
             if (job == null) {
-                final String host = getLogoHost();
+                final String host = config.getAddress();
+                final Integer interval = config.getRefreshRate();
                 logger.info("Creating new reader job for {} with interval {} ms.", host, interval.toString());
                 job = scheduler.scheduleWithFixedDelay(reader, 100, interval, TimeUnit.MILLISECONDS);
             }
@@ -260,7 +256,7 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
                 }
             }
             job = null;
-            logger.info("Destroy reader job for {}.", getLogoHost());
+            logger.info("Destroy reader job for {}.", config.getAddress());
         }
 
         if (disconnect()) {
@@ -314,12 +310,16 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
      * @return Configured Siemens LOGO! family
      */
     public String getLogoFamily() {
-        Object value = getConfigParameter(LOGO_FAMILY);
-        if (value instanceof String) {
-            final String family = (String) value;
-            return family.trim();
-        }
-        return null;
+        return config.getFamily();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void updateConfiguration(Configuration configuration) {
+        super.updateConfiguration(configuration);
+        config = getConfigAs(PLCLogoBridgeConfiguration.class);
     }
 
     /**
@@ -328,21 +328,10 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
      * @return True, if connected and false otherwise
      */
     private synchronized boolean connect() {
-        Object entry = null;
         if (!client.Connected) {
-            final String host = getLogoHost();
-
-            Integer local = null;
-            entry = getConfigParameter(LOGO_LOCAL_TSAP);
-            if (entry instanceof String) {
-                local = Integer.decode((String) entry);
-            }
-
-            Integer remote = null;
-            entry = getConfigParameter(LOGO_REMOTE_TSAP);
-            if (entry instanceof String) {
-                remote = Integer.decode((String) entry);
-            }
+            final String host = config.getAddress();
+            final Integer local = config.getLocalTSAP();
+            final Integer remote = config.getRemoteTSAP();
 
             if ((host != null) && (local != null) && (remote != null)) {
                 client.Connect(host, local.intValue(), remote.intValue());
@@ -362,29 +351,6 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
         if (client != null) {
             client.Disconnect();
             result = !client.Connected;
-        }
-        return result;
-    }
-
-    /**
-     * Returns configured Siemens LOGO! host.
-     *
-     * @return Configured Siemens LOGO! host
-     */
-    private String getLogoHost() {
-        Object value = getConfigParameter(LOGO_HOST);
-        if (value instanceof String) {
-            final String host = (String) value;
-            return host.trim();
-        }
-        return null;
-    }
-
-    private Object getConfigParameter(final String name) {
-        Object result = null;
-        Configuration config = getConfig();
-        if (config.containsKey(name)) {
-            result = config.get(name);
         }
         return result;
     }

@@ -8,11 +8,10 @@
  */
 package org.openhab.binding.plclogo.handler;
 
-import static org.openhab.binding.plclogo.PLCLogoBindingConstants.*;
+import static org.openhab.binding.plclogo.PLCLogoBindingConstants.LOGO_MEMORY_BLOCK;
 
 import java.util.Map;
 
-import org.eclipse.smarthome.config.core.Configuration;
 import org.eclipse.smarthome.core.thing.Bridge;
 import org.eclipse.smarthome.core.thing.ChannelUID;
 import org.eclipse.smarthome.core.thing.Thing;
@@ -125,14 +124,7 @@ public abstract class PLCBlockHandler extends BaseThingHandler {
      *
      * @return Name of configured LOGO! block
      */
-    public String getBlockName() {
-        Object entry = getConfigParameter(LOGO_BLOCK);
-        if (entry instanceof String) {
-            final String name = (String) entry;
-            return name.trim().toUpperCase();
-        }
-        return null;
-    }
+    public abstract String getBlockName();
 
     /**
      * Returns configured LOGO! block kind.
@@ -186,21 +178,6 @@ public abstract class PLCBlockHandler extends BaseThingHandler {
     }
 
     /**
-     * Returns if channel update must be forced.
-     *
-     * @return True, if channel update to be forced and false otherwise
-     */
-    public boolean isUpdateForcing() {
-        boolean result = false;
-        Object entry = getConfigParameter(FORCE_UPDATE);
-        if (entry instanceof String) {
-            final String value = (String) entry;
-            result = Boolean.parseBoolean(value.trim().toLowerCase());
-        }
-        return result;
-    }
-
-    /**
      * Calculate address for the block with given name.
      *
      * @param name Name of the LOGO! block
@@ -223,14 +200,5 @@ public abstract class PLCBlockHandler extends BaseThingHandler {
      * @return True, if the name is valid and false otherwise
      */
     protected abstract boolean isBlockValid(final String name);
-
-    private Object getConfigParameter(final String name) {
-        Object result = null;
-        Configuration config = getConfig();
-        if (config.containsKey(name)) {
-            result = config.get(name);
-        }
-        return result;
-    }
 
 }
