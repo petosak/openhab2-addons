@@ -28,6 +28,8 @@ import org.openhab.binding.plclogo.internal.PLCLogoDataType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import Moka7.S7;
+
 /**
  * The {@link PLCDigitalBlockHandler} is responsible for handling commands, which are
  * sent to one of the channels.
@@ -90,27 +92,31 @@ public class PLCDigitalBlockHandler extends PLCBlockHandler {
     }
 
     /**
-     * Update value channel of current thing with new data.
-     *
-     * @param data Data value to update with
+     * {@inheritDoc}
      */
-    public void setData(final boolean data) {
-        logger.debug("Block {} received {}.", getBlockName(), data);
+    @Override
+    public void setData(final byte[] data) {
+        if (data.length == 1) {
+            final boolean value = S7.GetBitAt(data, 0, getBit());
+            logger.debug("Block {} received {}.", getBlockName(), value);
 
-        if ((oldValue != (data ? 1 : 0)) || isUpdateForcing()) {
-            final Channel channel = thing.getChannel(DIGITAL_CHANNEL_ID);
+            if ((oldValue != (value ? 1 : 0)) || isUpdateForcing()) {
+                final Channel channel = thing.getChannel(DIGITAL_CHANNEL_ID);
 
-            final String type = channel.getAcceptedItemType();
-            if (type.equalsIgnoreCase("Contact")) {
-                updateState(channel.getUID(), data ? OpenClosedType.CLOSED : OpenClosedType.OPEN);
-            } else if (type.equalsIgnoreCase("Switch")) {
-                updateState(channel.getUID(), data ? OnOffType.ON : OnOffType.OFF);
-            } else {
-                logger.warn("Channel {} will not accept {} items.", channel.getUID(), type);
+                final String type = channel.getAcceptedItemType();
+                if (type.equalsIgnoreCase("Contact")) {
+                    updateState(channel.getUID(), value ? OpenClosedType.CLOSED : OpenClosedType.OPEN);
+                } else if (type.equalsIgnoreCase("Switch")) {
+                    updateState(channel.getUID(), value ? OnOffType.ON : OnOffType.OFF);
+                } else {
+                    logger.warn("Channel {} will not accept {} items.", channel.getUID(), type);
+                }
+                logger.debug("Channel {} accepting {} was set to {}.", channel.getUID(), type, value);
+
+                oldValue = value ? 1 : 0;
             }
-            logger.debug("Channel {} accepting {} was set to {}.", channel.getUID(), type, data);
-
-            oldValue = data ? 1 : 0;
+        } else {
+            logger.warn("Block {} received wrong data {}.", getBlockName(), data);
         }
     }
 

@@ -155,6 +155,13 @@ public abstract class PLCBlockHandler extends BaseThingHandler {
     }
 
     /**
+     * Update value channel of current thing with new data.
+     *
+     * @param data Data value to update with
+     */
+    public abstract void setData(final byte[] data);
+
+    /**
      * Returns data type accepted by LOGO! block.
      * Can be BIT for digital blocks and WORD/DWORD for analog
      *

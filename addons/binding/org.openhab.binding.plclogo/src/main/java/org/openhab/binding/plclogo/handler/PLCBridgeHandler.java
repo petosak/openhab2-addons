@@ -10,6 +10,7 @@ package org.openhab.binding.plclogo.handler;
 
 import static org.openhab.binding.plclogo.PLCLogoBindingConstants.*;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
@@ -80,18 +81,25 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
                                 }
 
                                 final int address = handler.getAddress();
-                                if (handler instanceof PLCDigitalBlockHandler) {
-                                    final PLCDigitalBlockHandler block = (PLCDigitalBlockHandler) handler;
-                                    block.setData(S7.GetBitAt(buffer, address, handler.getBit()));
-                                } else if (handler instanceof PLCAnalogBlockHandler) {
-                                    final PLCAnalogBlockHandler block = (PLCAnalogBlockHandler) handler;
-                                    if (block.getBlockDataType() == PLCLogoDataType.DWORD) {
-                                        block.setData(S7.GetDWordAt(buffer, address));
-                                    } else {
-                                        block.setData(S7.GetShortAt(buffer, address));
+                                switch (handler.getBlockDataType()) {
+                                    case BIT: {
+                                        handler.setData(Arrays.copyOfRange(buffer, address, address + 1));
+                                        break;
                                     }
-                                } else {
-                                    logger.error("Invalid handler type {} found.", handler.getClass().getSimpleName());
+                                    case DWORD: {
+                                        handler.setData(Arrays.copyOfRange(buffer, address, address + 4));
+                                        break;
+                                    }
+                                    case WORD: {
+                                        handler.setData(Arrays.copyOfRange(buffer, address, address + 2));
+                                        break;
+                                    }
+                                    default:
+                                    case INVALID: {
+                                        logger.error("Invalid handler {} found.", handler.getClass().getSimpleName());
+                                        break;
+                                    }
+
                                 }
                             }
                         }
@@ -129,9 +137,10 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
             final PLCBlockHandler handler = (PLCBlockHandler) thingRegistry.get(thingUID).getHandler();
 
             int address = handler.getAddress();
-            if (DIGITAL_CHANNEL_ID.equals(channelUID.getId())) {
+            final PLCLogoDataType type = handler.getBlockDataType();
+            if (DIGITAL_CHANNEL_ID.equals(channelUID.getId()) && (type == PLCLogoDataType.BIT)) {
+                byte[] buffer = { 0 };
                 if ((command instanceof OnOffType) || (command instanceof OpenClosedType)) {
-                    byte[] buffer = { 0 };
                     if (command instanceof OnOffType) {
                         final OnOffType state = (OnOffType) command;
                         S7.SetBitAt(buffer, 0, 0, state == OnOffType.ON);
@@ -146,25 +155,49 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
                         logger.error("Can not write data to LOGO!: {}.", S7Client.ErrorText(result));
                     }
                 } else if (command instanceof RefreshType) {
-                }
-            } else if (ANALOG_CHANNEL_ID.equals(channelUID.getId())) {
-                if (command instanceof DecimalType) {
-                    int result = 0;
-                    final DecimalType state = (DecimalType) command;
-                    if (handler.getBlockDataType() == PLCLogoDataType.DWORD) {
-                        byte[] buffer = { 0, 0, 0, 0 };
-                        S7.SetDWordAt(buffer, 0, state.longValue());
-                        result = client.WriteDBArea(1, address, 4, S7Client.S7WLByte, buffer);
+                    int result = client.ReadDBArea(1, address, 1, S7Client.S7WLByte, buffer);
+                    if (result == 0) {
+                        handler.setData(buffer);
                     } else {
-                        byte[] buffer = { 0, 0 };
-                        S7.SetShortAt(buffer, 0, state.intValue());
-                        result = client.WriteDBArea(1, address, 2, S7Client.S7WLByte, buffer);
+                        logger.error("Can not read data from LOGO!: {}.", S7Client.ErrorText(result));
                     }
+                }
+            } else if (ANALOG_CHANNEL_ID.equals(channelUID.getId()) && (type == PLCLogoDataType.DWORD)) {
+                byte[] buffer = { 0, 0, 0, 0 };
+                if (command instanceof DecimalType) {
+                    final DecimalType state = (DecimalType) command;
+                    S7.SetDWordAt(buffer, 0, state.longValue());
+                    int result = client.WriteDBArea(1, address, 4, S7Client.S7WLByte, buffer);
                     if (result != 0) {
                         logger.error("Can not write data to LOGO!: {}.", S7Client.ErrorText(result));
                     }
                 } else if (command instanceof RefreshType) {
+                    int result = client.ReadDBArea(1, address, 4, S7Client.S7WLByte, buffer);
+                    if (result == 0) {
+                        handler.setData(buffer);
+                    } else {
+                        logger.error("Can not read data from LOGO!: {}.", S7Client.ErrorText(result));
+                    }
                 }
+            } else if (ANALOG_CHANNEL_ID.equals(channelUID.getId()) && (type == PLCLogoDataType.WORD)) {
+                byte[] buffer = { 0, 0 };
+                if (command instanceof DecimalType) {
+                    final DecimalType state = (DecimalType) command;
+                    S7.SetShortAt(buffer, 0, state.intValue());
+                    int result = client.WriteDBArea(1, address, 2, S7Client.S7WLByte, buffer);
+                    if (result != 0) {
+                        logger.error("Can not write data to LOGO!: {}.", S7Client.ErrorText(result));
+                    }
+                } else if (command instanceof RefreshType) {
+                    int result = client.ReadDBArea(1, address, 2, S7Client.S7WLByte, buffer);
+                    if (result == 0) {
+                        handler.setData(buffer);
+                    } else {
+                        logger.error("Can not read data from LOGO!: {}.", S7Client.ErrorText(result));
+                    }
+                }
+            } else {
+                logger.error("Invalid handler {} found.", handler.getClass().getSimpleName());
             }
         }
     }
