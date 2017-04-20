@@ -16,18 +16,18 @@ For this reason, the binding does not do an automatic background discovery, but 
 Every Siemens LOGO! PLC is configured as bridge:
 
 ```
-Bridge plclogo:device:plc [ address="<ip>", family="<0BA7/0BA8>", localTSAP="0x<number>", remoteTSAP="0x<number>", refresh="<number>" ]
+Bridge plclogo:device:plc [ address="<ip>", family="<0BA7/0BA8>", localTSAP="0x<number>", remoteTSAP="0x<number>", refresh=<number> ]
 ```
 
-| Parameter  | Required   | Default   | Description                                                      |
-| ---------- | :--------: | :-------: | ---------------------------------------------------------------- |
-| address    | Yes        |           | IP address of the LOGO! PLC.                                     |
-| family     | Yes        |           | LOGO! family to communicate with. Can be `0BA7` or `0BA8` now.   |
-| localTSAP  | Yes        |           | TSAP (in hex) is used by the local instance. Check configuration |
-|            |            |           | in LOGO!Soft Comfort. Common used value is `0x0300`.             |
-| remoteTSAP | Yes        |           | TSAP (in hex) of the remote LOGO! PLC, as configured by          |
-|            |            |           | LOGO!Soft Comfort. Common used value is `0x0200`.                |
-| refresh    | No         | 100ms     | Polling interval, in milliseconds. Is used for query the LOGO!.  |
+| Parameter  | Type    | Required   | Default   | Description                                                      |
+| ---------- | :-----: | :--------: | :-------: | ---------------------------------------------------------------- |
+| address    | String  | Yes        |           | IP address of the LOGO! PLC.                                     |
+| family     | String  | Yes        |           | LOGO! family to communicate with. Can be `0BA7` or `0BA8` now.   |
+| localTSAP  | String  | Yes        |           | TSAP (as hex) is used by the local instance. Check configuration |
+|            |         |            |           | in LOGO!Soft Comfort. Common used value is `0x0300`.             |
+| remoteTSAP | String  | Yes        |           | TSAP (as hex) of the remote LOGO! PLC, as configured by          |
+|            |         |            |           | LOGO!Soft Comfort. Common used value is `0x0200`.                |
+| refresh    | Integer | No         | 100ms     | Polling interval, in milliseconds. Is used for query the LOGO!.  |
 
 
 ## Thing configuration
@@ -38,17 +38,17 @@ Binding supports two types of things: digital and analog.
 The configuration pattern for digital things is as follow
 
 ```
-Thing plclogo:digital:<ThingId> [ block="<name>", force="<true/false>" ]
+Thing plclogo:digital:<ThingId> [ block="<name>", force=<true/false> ]
 ```
 
-| Parameter | Required   | Default   | Description                                                  |
-| --------- | :--------: | :-------: | ------------------------------------------------------------ |
-| block     | Yes        |           | Block name                                                   |
-| force     | No         | false     | Send current value to openHAB, independent if changed or not |
+| Parameter | Type    | Required   | Default   | Description                                                  |
+| --------- | :-----: | :--------: | :-------: | ------------------------------------------------------------ |
+| block     | String  | Yes        |           | Block name                                                   |
+| force     | Boolean | No         | false     | Send current value to openHAB, independent if changed or not |
 
 Follow block names are allowed for digital things:
 
-| Type           | `0BA7`              | `0BA8`              | 
+| Type           | `0BA7`              | `0BA8`            | 
 | -------------- | :-----------------: | :---------------: |
 | Input          | `I[1-24]`           | `I[1-24]`         |
 | Output         | `Q[1-16]`           | `Q[1-20]`         |
@@ -61,14 +61,14 @@ Follow block names are allowed for digital things:
 The configuration pattern for analog things is as follow
 
 ```
-Thing plclogo:analog:<ThingId> [ block="<name>", threshold="<number>", force="<true/false>" ]
+Thing plclogo:analog:<ThingId> [ block="<name>", threshold=<number>, force=<true/false> ]
 ```
 
-| Parameter | Required   | Default   | Description                                                   |
-| --------- | :--------: | :-------: | ------------------------------------------------------------- |
-| block     | Yes        |           | Block name                                                    |
-| threshold | No         | false     | Send current value to openHAB, if changed more than threshold |
-| force     | No         | false     | Send current value to openHAB, independent if changed or not  |
+| Parameter | Type    | Required   | Default   | Description                                                   |
+| --------- | :-----: | :--------: | :-------: | ------------------------------------------------------------- |
+| block     | String  | Yes        |           | Block name                                                    |
+| threshold | Integer | No         | false     | Send current value to openHAB, if changed more than threshold |
+| force     | Boolean | No         | false     | Send current value to openHAB, independent if changed or not  |
 
 Follow block names are allowed for analog things:
 
@@ -104,7 +104,7 @@ channel="plclogo:digital:<ThingId>:value"
 logo.things:
 
 ```
-Bridge plclogo:device:Logo [ address="192.168.0.1", family="0BA8", localTSAP="0x3000", remoteTSAP="0x2000", refresh ="100" ]
+Bridge plclogo:device:Logo [ address="192.168.0.1", family="0BA8", localTSAP="0x3000", remoteTSAP="0x2000", refresh=100 ]
 {
   Thing plclogo:digital:VB0_0 [ block="VB0.0" ]
   Thing plclogo:digital:VB0_1 [ block="VB0.1" ]
@@ -112,7 +112,7 @@ Bridge plclogo:device:Logo [ address="192.168.0.1", family="0BA8", localTSAP="0x
   Thing plclogo:digital:NI2   [ block="NI2" ]
   Thing plclogo:digital:Q1    [ block="Q1" ]
   Thing plclogo:digital:Q2    [ block="Q2" ]
-  Thing plclogo:analog:VW100  [ block="VW100", threshold="1" ]
+  Thing plclogo:analog:VW100  [ block="VW100", threshold=1 ]
 }
 ```
 
