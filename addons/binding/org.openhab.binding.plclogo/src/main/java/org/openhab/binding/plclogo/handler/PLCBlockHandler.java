@@ -12,6 +12,7 @@ import static org.openhab.binding.plclogo.PLCLogoBindingConstants.LOGO_MEMORY_BL
 
 import java.util.Map;
 
+import org.eclipse.smarthome.config.core.Configuration;
 import org.eclipse.smarthome.core.thing.Bridge;
 import org.eclipse.smarthome.core.thing.ChannelUID;
 import org.eclipse.smarthome.core.thing.Thing;
@@ -99,9 +100,8 @@ public abstract class PLCBlockHandler extends BaseThingHandler {
      * @return Calculated address
      */
     public int getAddress() {
-        final String name = getBlockName();
-        if ((address == -1) && isBlockValid(name)) {
-            address = getAddress(name);
+        if (address == -1) {
+            address = getAddress(getBlockName());
         }
         return address;
     }
@@ -112,9 +112,8 @@ public abstract class PLCBlockHandler extends BaseThingHandler {
      * @return Calculated bit
      */
     public int getBit() {
-        final String name = getBlockName();
-        if ((bit == -1) && isBlockValid(name)) {
-            bit = getBit(name);
+        if (bit == -1) {
+            bit = getBit(getBlockName());
         }
         return bit;
     }
@@ -125,26 +124,6 @@ public abstract class PLCBlockHandler extends BaseThingHandler {
      * @return Name of configured LOGO! block
      */
     public abstract String getBlockName();
-
-    /**
-     * Returns configured LOGO! block kind.
-     * Can be VB, VD, VW, I, Q, M, AI, AQ, AM, NI, NAI, NQ or NAQ
-     *
-     * @see PLCLogoBindingConstants#LOGO_MEMORY_0BA7
-     * @see PLCLogoBindingConstants#LOGO_MEMORY_0BA8
-     * @return Kind of configured block
-     */
-    public String getBlockKind() {
-        final String name = getBlockName();
-        if (Character.isDigit(name.charAt(1))) {
-            return name.substring(0, 1);
-        } else if (Character.isDigit(name.charAt(2))) {
-            return name.substring(0, 2);
-        } else if (Character.isDigit(name.charAt(3))) {
-            return name.substring(0, 3);
-        }
-        return null;
-    }
 
     /**
      * Update value channel of current thing with new data.
@@ -178,6 +157,16 @@ public abstract class PLCBlockHandler extends BaseThingHandler {
     }
 
     /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void updateConfiguration(Configuration configuration) {
+        super.updateConfiguration(configuration);
+        address = -1;
+        bit = -1;
+    }
+
+    /**
      * Calculate address for the block with given name.
      *
      * @param name Name of the LOGO! block
@@ -192,13 +181,5 @@ public abstract class PLCBlockHandler extends BaseThingHandler {
      * @return Calculated bit
      */
     protected abstract int getBit(final String name);
-
-    /**
-     * Checks, if given name for the block is valid.
-     *
-     * @param name Name of the LOGO! block
-     * @return True, if the name is valid and false otherwise
-     */
-    protected abstract boolean isBlockValid(final String name);
 
 }

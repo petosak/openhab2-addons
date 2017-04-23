@@ -8,58 +8,42 @@
  */
 package org.openhab.binding.plclogo.config;
 
-import java.util.Objects;
-
 /**
  * The {@link PLCLogoDigitalConfiguration} holds configuration of Siemens LOGO! PLC
  * digital input/outputs blocks.
  *
  * @author Alexander Falkenstern - Initial contribution
  */
-public class PLCLogoDigitalConfiguration {
-
-    private String block = null;
-    private Boolean force = false;
+public class PLCLogoDigitalConfiguration extends PLCLogoBlockConfiguration {
 
     public PLCLogoDigitalConfiguration() {
+        super();
     }
 
     /**
-     * Get configured Siemens LOGO! device block name.
-     *
-     * @return Configured Siemens LOGO! block name
+     * {@inheritDoc}
      */
-    public String getBlockName() {
-        return block;
-    }
-
-    /**
-     * Set Siemens LOGO! device block name.
-     *
-     * @param name Siemens LOGO! block name
-     */
-    public void setBlockName(final String name) {
-        Objects.requireNonNull(name, "Block name may not be null");
-        this.block = name.trim();
-    }
-
-    /**
-     * Returns if Siemens LOGO! device block channel update must be forced.
-     *
-     * @return True, if channel update to be forced and false otherwise
-     */
-    public Boolean isUpdateForced() {
-        return force;
-    }
-
-    /**
-     * Set Siemens LOGO! device blocks update must be forced.
-     *
-     * @param force Force update of Siemens LOGO! device blocks
-     */
-    public void setForceUpdate(final Boolean force) {
-        Objects.requireNonNull(force, "Force may not be null");
-        this.force = force;
+    @Override
+    public boolean isBlockValid() {
+        boolean valid = false;
+        final String name = getBlockName();
+        if (name.length() >= 2) {
+            valid = valid || name.startsWith("I") || name.startsWith("NI"); // Inputs
+            valid = valid || name.startsWith("Q") || name.startsWith("NQ"); // Outputs
+            valid = valid || name.startsWith("M"); // Markers
+            if (!valid && name.startsWith("VB")) { // Memory block
+                final String[] parts = name.split("\\.");
+                if (parts.length == 2) {
+                    final int bit = Integer.parseInt(parts[1]);
+                    valid = (0 <= bit) && (bit <= 7);
+                    if (valid && Character.isDigit(parts[0].charAt(2))) {
+                        final int address = Integer.parseInt(parts[0].substring(2));
+                        valid = (0 <= address) && (address <= 850);
+                    }
+                }
+            }
+        }
+        return valid;
     }
 
 }

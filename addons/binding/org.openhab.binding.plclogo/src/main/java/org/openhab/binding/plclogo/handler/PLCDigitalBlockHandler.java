@@ -44,8 +44,8 @@ public class PLCDigitalBlockHandler extends PLCBlockHandler {
 
     public static final Set<ThingTypeUID> SUPPORTED_THING_TYPES = Collections.singleton(THING_TYPE_DIGITAL);
 
-    PLCLogoDigitalConfiguration config = getConfigAs(PLCLogoDigitalConfiguration.class);
-    int oldValue = Integer.MAX_VALUE;
+    private PLCLogoDigitalConfiguration config = getConfigAs(PLCLogoDigitalConfiguration.class);
+    private int oldValue = Integer.MAX_VALUE;
 
     public PLCDigitalBlockHandler(Thing thing) {
         super(thing);
@@ -56,9 +56,11 @@ public class PLCDigitalBlockHandler extends PLCBlockHandler {
      */
     @Override
     public void initialize() {
-        final String name = getBlockName();
-        if (isBlockValid(name)) {
-            final String kind = getBlockKind();
+        config = getConfigAs(PLCLogoDigitalConfiguration.class);
+
+        final String name = config.getBlockName();
+        if (config.isBlockValid()) {
+            final String kind = config.getBlockKind();
             String text = kind.equalsIgnoreCase("I") || kind.equalsIgnoreCase("NI") ? INPUT : OUTPUT;
 
             ThingBuilder builder = editThing();
@@ -80,6 +82,7 @@ public class PLCDigitalBlockHandler extends PLCBlockHandler {
         } else {
             final String message = "Can not initialize LOGO! block. Please check blocks.";
             updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.CONFIGURATION_ERROR, message);
+            logger.error("Can not initialize thing {} for LOGO! block {}.", thing.getUID(), name);
         }
     }
 
@@ -136,7 +139,7 @@ public class PLCDigitalBlockHandler extends PLCBlockHandler {
      */
     @Override
     public PLCLogoDataType getBlockDataType() {
-        return isBlockValid(getBlockName()) ? PLCLogoDataType.BIT : PLCLogoDataType.INVALID;
+        return config.isBlockValid() ? PLCLogoDataType.BIT : PLCLogoDataType.INVALID;
     }
 
     /**
@@ -157,7 +160,7 @@ public class PLCDigitalBlockHandler extends PLCBlockHandler {
 
         logger.debug("Get address of {} LOGO! for block {} .", getLogoFamily(), name);
 
-        if (isBlockValid(name)) {
+        if (config.isBlockValid()) {
             final String block = name.trim().split("\\.")[0];
             if (Character.isDigit(block.charAt(1))) {
                 address = Integer.parseInt(block.substring(1));
@@ -169,6 +172,8 @@ public class PLCDigitalBlockHandler extends PLCBlockHandler {
             if (base != 0) { // Only VB/VD/VW memory ranges are 0 based
                 address = base + (address - 1) / 8;
             }
+        } else {
+            logger.error("Wrong configurated LOGO! block {} found.", name);
         }
         return address;
     }
@@ -182,7 +187,7 @@ public class PLCDigitalBlockHandler extends PLCBlockHandler {
 
         logger.debug("Get bit of {} LOGO! for block {} .", getLogoFamily(), name);
 
-        if (isBlockValid(name)) {
+        if (config.isBlockValid()) {
             final String[] parts = name.trim().split("\\.");
             if (Character.isDigit(parts[0].charAt(1))) {
                 bit = Integer.parseInt(parts[0].substring(1));
@@ -195,29 +200,10 @@ public class PLCDigitalBlockHandler extends PLCBlockHandler {
             } else {
                 bit = Integer.parseInt(parts[1]);
             }
+        } else {
+            logger.error("Wrong configurated LOGO! block {} found.", name);
         }
         return bit;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    protected boolean isBlockValid(final String name) {
-        boolean valid = false;
-        if (name.length() >= 2) {
-            valid = valid || name.startsWith("I") || name.startsWith("NI"); // Inputs
-            valid = valid || name.startsWith("Q") || name.startsWith("NQ"); // Outputs
-            valid = valid || name.startsWith("M"); // Markers
-            if (!valid && name.startsWith("VB")) { // Memory block
-                final String[] parts = name.split("\\.");
-                if (parts.length == 2) {
-                    final int bit = Integer.parseInt(parts[1]);
-                    valid = (0 <= bit) && (bit <= 7);
-                }
-            }
-        }
-        return valid;
     }
 
     /**

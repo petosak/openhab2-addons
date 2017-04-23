@@ -43,8 +43,8 @@ public class PLCAnalogBlockHandler extends PLCBlockHandler {
 
     public static final Set<ThingTypeUID> SUPPORTED_THING_TYPES = Collections.singleton(THING_TYPE_ANALOG);
 
-    PLCLogoAnalogConfiguration config = getConfigAs(PLCLogoAnalogConfiguration.class);
-    long oldValue = Long.MAX_VALUE;
+    private PLCLogoAnalogConfiguration config = getConfigAs(PLCLogoAnalogConfiguration.class);
+    private long oldValue = Long.MAX_VALUE;
 
     /**
      * {@inheritDoc}
@@ -58,9 +58,11 @@ public class PLCAnalogBlockHandler extends PLCBlockHandler {
      */
     @Override
     public void initialize() {
-        final String name = getBlockName();
-        if (isBlockValid(name)) {
-            final String kind = getBlockKind();
+        config = getConfigAs(PLCLogoAnalogConfiguration.class);
+
+        final String name = config.getBlockName();
+        if (config.isBlockValid()) {
+            final String kind = config.getBlockKind();
             String text = kind.equalsIgnoreCase("AI") || kind.equalsIgnoreCase("NAI") ? INPUT : OUTPUT;
 
             ThingBuilder builder = editThing();
@@ -81,6 +83,7 @@ public class PLCAnalogBlockHandler extends PLCBlockHandler {
         } else {
             final String message = "Can not initialize LOGO! block. Please check blocks.";
             updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.CONFIGURATION_ERROR, message);
+            logger.error("Can not initialize thing {} for LOGO! block {}.", thing.getUID(), name);
         }
     }
 
@@ -135,8 +138,8 @@ public class PLCAnalogBlockHandler extends PLCBlockHandler {
      */
     @Override
     public PLCLogoDataType getBlockDataType() {
-        final String kind = getBlockKind();
-        if ((kind != null) && isBlockValid(getBlockName())) {
+        final String kind = config.getBlockKind();
+        if ((kind != null) && config.isBlockValid()) {
             return kind.equalsIgnoreCase("VD") ? PLCLogoDataType.DWORD : PLCLogoDataType.WORD;
         }
         return PLCLogoDataType.INVALID;
@@ -160,7 +163,7 @@ public class PLCAnalogBlockHandler extends PLCBlockHandler {
 
         logger.debug("Get address of {} LOGO! for block {} .", getLogoFamily(), name);
 
-        if (isBlockValid(name)) {
+        if (config.isBlockValid()) {
             final String block = name.trim().split("\\.")[0];
             if (Character.isDigit(block.charAt(2))) {
                 address = Integer.parseInt(block.substring(2));
@@ -172,6 +175,8 @@ public class PLCAnalogBlockHandler extends PLCBlockHandler {
             if (base != 0) { // Only VB/VD/VW memory ranges are 0 based
                 address = base + (address - 1) * 2;
             }
+        } else {
+            logger.error("Wrong configurated LOGO! block {} found.", name);
         }
         return address;
     }
@@ -184,24 +189,6 @@ public class PLCAnalogBlockHandler extends PLCBlockHandler {
         logger.debug("Get bit of {} LOGO! for block {} .", getLogoFamily(), name);
 
         return 0;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    protected boolean isBlockValid(final String name) {
-        boolean valid = false;
-        if (name.length() >= 3) {
-            valid = valid || name.startsWith("AI") || name.startsWith("NAI"); // Inputs
-            valid = valid || name.startsWith("AQ") || name.startsWith("NAQ"); // Outputs
-            valid = valid || name.startsWith("AM"); // Markers
-            if (!valid && (name.startsWith("VW") || name.startsWith("VD"))) { // Memory block
-                String[] memparts = name.split("\\.");
-                valid = (memparts.length == 1);
-            }
-        }
-        return valid;
     }
 
     /**

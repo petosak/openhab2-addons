@@ -16,51 +16,12 @@ import java.util.Objects;
  *
  * @author Alexander Falkenstern - Initial contribution
  */
-public class PLCLogoAnalogConfiguration {
+public class PLCLogoAnalogConfiguration extends PLCLogoBlockConfiguration {
 
-    private String block = null;
-    private Boolean force = false;
     private Integer threshold = 0;
 
     public PLCLogoAnalogConfiguration() {
-    }
-
-    /**
-     * Get configured Siemens LOGO! device block name.
-     *
-     * @return Configured Siemens LOGO! block name
-     */
-    public String getBlockName() {
-        return block;
-    }
-
-    /**
-     * Set Siemens LOGO! device block name.
-     *
-     * @param name Siemens LOGO! block name
-     */
-    public void setBlockName(final String name) {
-        Objects.requireNonNull(name, "Block name may not be null");
-        this.block = name.trim();
-    }
-
-    /**
-     * Returns if Siemens LOGO! device block channel update must be forced.
-     *
-     * @return True, if channel update to be forced and false otherwise
-     */
-    public Boolean isUpdateForced() {
-        return force;
-    }
-
-    /**
-     * Set Siemens LOGO! device blocks update must be forced.
-     *
-     * @param force Force update of Siemens LOGO! device blocks
-     */
-    public void setForceUpdate(final Boolean force) {
-        Objects.requireNonNull(force, "Force may not be null");
-        this.force = force;
+        super();
     }
 
     /**
@@ -81,4 +42,28 @@ public class PLCLogoAnalogConfiguration {
         Objects.requireNonNull(threshold, "Threshold may not be null");
         this.threshold = threshold;
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean isBlockValid() {
+        boolean valid = false;
+        final String name = getBlockName();
+        if (name.length() >= 3) {
+            valid = valid || name.startsWith("AI") || name.startsWith("NAI"); // Inputs
+            valid = valid || name.startsWith("AQ") || name.startsWith("NAQ"); // Outputs
+            valid = valid || name.startsWith("AM"); // Markers
+            if (!valid && (name.startsWith("VW") || name.startsWith("VD"))) { // Memory block
+                final String[] parts = name.split("\\.");
+                valid = (parts.length == 1);
+                if (valid && Character.isDigit(parts[0].charAt(2))) {
+                    final int address = Integer.parseInt(parts[0].substring(2));
+                    valid = (0 <= address) && (address <= (name.startsWith("VD") ? 847 : 849));
+                }
+            }
+        }
+        return valid;
+    }
+
 }

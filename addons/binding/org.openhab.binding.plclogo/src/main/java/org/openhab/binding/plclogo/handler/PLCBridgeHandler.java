@@ -59,7 +59,7 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
      */
     private volatile PLCLogoClient client = null;
     private Set<PLCBlockHandler> handlers = new HashSet<PLCBlockHandler>();
-    PLCLogoBridgeConfiguration config = getConfigAs(PLCLogoBridgeConfiguration.class);
+    private PLCLogoBridgeConfiguration config = getConfigAs(PLCLogoBridgeConfiguration.class);
 
     private ScheduledFuture<?> job = null;
     private final Runnable reader = new Runnable() {
