@@ -29,6 +29,7 @@ Bridge plclogo:device:plc [ address="<ip>", family="<0BA7/0BA8>", localTSAP="0x<
 |            |         |            |           | LOGO!Soft Comfort. Common used value is `0x0200`.                |
 | refresh    | Integer | No         | 100ms     | Polling interval, in milliseconds. Is used for query the LOGO!.  |
 
+Be sure not to use the same values for localTSAP and remoteTSAP, if configure more than one LOGO!
 
 ## Thing configuration
 
@@ -100,6 +101,7 @@ channel="plclogo:digital:<ThingId>:value"
 ```
 
 ## Examples
+Configuration of one Siemens LOGO!
 
 logo.things:
 
@@ -122,11 +124,58 @@ logo.items:
 // NI1 is mapped to VB0.0 address in LOGO!Soft Comfort 
 // NI2 is mapped to VB0.1 address in LOGO!Soft Comfort 
 
-Switch  OpenHABUp   {channel="plclogo:digital:VB0_0:state"}
-Switch  OpenHABDown {channel="plclogo:digital:VB0_1:state"}
-Contact LogoIsUp    {channel="plclogo:digital:NI1:state"}
-Contact LogoIsDown  {channel="plclogo:digital:NI2:state"}
-Switch  Output1     {channel="plclogo:digital:Q1:state"}
-Switch  Output2     {channel="plclogo:digital:Q2:state"}
-Number  Position    {channel="plclogo:analog:VW100:value"}
+Switch  LogoUp     {channel="plclogo:digital:VB0_0:state"}
+Switch  LogoDown   {channel="plclogo:digital:VB0_1:state"}
+Contact LogoIsUp   {channel="plclogo:digital:NI1:state"}
+Contact LogoIsDown {channel="plclogo:digital:NI2:state"}
+Switch  Output1    {channel="plclogo:digital:Q1:state"}
+Switch  Output2    {channel="plclogo:digital:Q2:state"}
+Number  Position   {channel="plclogo:analog:VW100:value"}
+```
+
+Configuration of two Siemens LOGO!
+
+logo.things:
+
+```
+Bridge plclogo:device:Logo1 [ address="192.168.0.1", family="0BA8", localTSAP="0x3000", remoteTSAP="0x2000", refresh=100 ]
+{
+  Thing plclogo:digital:Logo1_VB0_0 [ block="VB0.0" ]
+  Thing plclogo:digital:Logo1_VB0_1 [ block="VB0.1" ]
+  Thing plclogo:digital:Logo1_NI1   [ block="NI1" ]
+  Thing plclogo:digital:Logo1_NI2   [ block="NI2" ]
+  Thing plclogo:digital:Logo1_Q1    [ block="Q1" ]
+  Thing plclogo:digital:Logo1_Q2    [ block="Q2" ]
+  Thing plclogo:analog:Logo1_VW100  [ block="VW100", threshold=1 ]
+}
+Bridge plclogo:device:Logo2 [ address="192.168.0.2", family="0BA8", localTSAP="0x3100", remoteTSAP="0x2000", refresh=100 ]
+{
+  Thing plclogo:digital:Logo2_VB0_0 [ block="VB0.0" ]
+  Thing plclogo:digital:Logo2_VB0_1 [ block="VB0.1" ]
+  Thing plclogo:digital:Logo2_NI1   [ block="NI1" ]
+  Thing plclogo:digital:Logo2_NI2   [ block="NI2" ]
+  Thing plclogo:digital:Logo2_Q1    [ block="Q1" ]
+  Thing plclogo:digital:Logo2_Q2    [ block="Q2" ]
+  Thing plclogo:analog:Logo2_VW100  [ block="VW100", threshold=1 ]
+}
+```
+
+logo.items:
+
+```
+Switch  Logo1_Up       {channel="plclogo:digital:Logo1_VB0_0:state"}
+Switch  Logo1_Down     {channel="plclogo:digital:Logo1_VB0_1:state"}
+Contact Logo1_IsUp     {channel="plclogo:digital:Logo1_NI1:state"}
+Contact Logo1_IsDown   {channel="plclogo:digital:Logo1_NI2:state"}
+Switch  Logo1_Output1  {channel="plclogo:digital:Logo1_Q1:state"}
+Switch  Logo1_Output2  {channel="plclogo:digital:Logo1_Q2:state"}
+Number  Logo1_Position {channel="plclogo:analog:Logo1_VW100:value"}
+
+Switch  Logo2_Up       {channel="plclogo:digital:Logo2_VB0_0:state"}
+Switch  Logo2_Down     {channel="plclogo:digital:Logo2_VB0_1:state"}
+Contact Logo2_IsUp     {channel="plclogo:digital:Logo2_NI1:state"}
+Contact Logo2_IsDown   {channel="plclogo:digital:Logo2_NI2:state"}
+Switch  Logo2_Output1  {channel="plclogo:digital:Logo2_Q1:state"}
+Switch  Logo2_Output2  {channel="plclogo:digital:Logo2_Q2:state"}
+Number  Logo2_Position {channel="plclogo:analog:Logo2_VW100:value"}
 ```
