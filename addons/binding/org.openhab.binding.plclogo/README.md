@@ -85,7 +85,7 @@ Follow block names are allowed for analog things:
 
 ## Channels
 ### Bridge
-Each device have currently one channel: `rtc`:
+Each device have currently one channel `rtc`:
 
 ```
 channel="plclogo:device:<DeviceId>:rtc"
@@ -94,7 +94,7 @@ channel="plclogo:device:<DeviceId>:rtc"
 This channel supports `DateTime` items.
 
 ### Digital
-Each digital thing have currently one channel: `state`:
+Each digital thing have currently one channel `state`:
 
 ```
 channel="plclogo:digital:<ThingId>:state"
@@ -105,7 +105,7 @@ for inputs and `Switch` for outputs. Means, that for `I` and `NI` blocks `Contac
 be used. For other blocks simply use `Switch`, since they are bidirectional.
 
 ### Analog
-Each analog thing have currently one channel: `value`:
+Each analog thing have currently one channel `value`:
 
 ```
 channel="plclogo:digital:<ThingId>:value"
