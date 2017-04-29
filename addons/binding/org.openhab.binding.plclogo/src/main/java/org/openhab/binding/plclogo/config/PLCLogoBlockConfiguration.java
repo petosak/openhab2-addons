@@ -90,4 +90,11 @@ public abstract class PLCLogoBlockConfiguration {
         return null;
     }
 
+    /**
+     * Returns if block represents input.
+     *
+     * @return True, if block is input and false otherwise
+     */
+    public abstract boolean isInputBlock();
+
 }

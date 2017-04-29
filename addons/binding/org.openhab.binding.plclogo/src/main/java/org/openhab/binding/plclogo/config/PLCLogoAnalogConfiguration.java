@@ -66,4 +66,13 @@ public class PLCLogoAnalogConfiguration extends PLCLogoBlockConfiguration {
         return valid;
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean isInputBlock() {
+        final String kind = getBlockKind();
+        return kind.equalsIgnoreCase("AI") || kind.equalsIgnoreCase("NAI");
+    }
+
 }

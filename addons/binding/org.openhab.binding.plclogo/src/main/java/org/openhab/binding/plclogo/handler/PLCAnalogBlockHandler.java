@@ -24,6 +24,7 @@ import org.eclipse.smarthome.core.thing.ThingStatusDetail;
 import org.eclipse.smarthome.core.thing.ThingTypeUID;
 import org.eclipse.smarthome.core.thing.binding.builder.ChannelBuilder;
 import org.eclipse.smarthome.core.thing.binding.builder.ThingBuilder;
+import org.eclipse.smarthome.core.thing.type.ChannelTypeUID;
 import org.openhab.binding.plclogo.config.PLCLogoAnalogConfiguration;
 import org.openhab.binding.plclogo.internal.PLCLogoDataType;
 import org.slf4j.Logger;
@@ -62,16 +63,16 @@ public class PLCAnalogBlockHandler extends PLCBlockHandler {
 
         final String name = config.getBlockName();
         if (config.isBlockValid()) {
-            final String kind = config.getBlockKind();
-            String text = kind.equalsIgnoreCase("AI") || kind.equalsIgnoreCase("NAI") ? INPUT : OUTPUT;
-
             ThingBuilder builder = editThing();
+
+            String text = config.isInputBlock() ? INPUT : OUTPUT;
             text = text.substring(0, 1).toUpperCase() + text.substring(1);
             builder = builder.withLabel(getBridge().getLabel() + ": " + text + " " + name);
 
             if (thing.getChannel(ANALOG_CHANNEL_ID) == null) {
                 final ChannelUID uid = new ChannelUID(getThing().getUID(), ANALOG_CHANNEL_ID);
                 ChannelBuilder channel = ChannelBuilder.create(uid, "Number");
+                channel = channel.withType(new ChannelTypeUID(BINDING_ID, ANALOG_CHANNEL_ID));
                 channel = channel.withLabel(name);
                 channel = channel.withDescription("Analog " + text);
                 builder = builder.withChannel(channel.build());
