@@ -16,7 +16,7 @@ For this reason, the binding does not do an automatic background discovery, but 
 Every Siemens LOGO! PLC is configured as bridge:
 
 ```
-Bridge plclogo:device:plc [ address="<ip>", family="<0BA7/0BA8>", localTSAP="0x<number>", remoteTSAP="0x<number>", refresh=<number> ]
+Bridge plclogo:device:<DeviceId> [ address="<ip>", family="<0BA7/0BA8>", localTSAP="0x<number>", remoteTSAP="0x<number>", refresh=<number> ]
 ```
 
 | Parameter  | Type    | Required   | Default   | Description                                                      |
@@ -84,21 +84,35 @@ Follow block names are allowed for analog things:
 | Memory (WORD)  | `VW[0-849]`   | `VW[0-849]` |
 
 ## Channels
-Each digital thing have only one channel `state`. Dependend on configured block type,
-two different types of items are supported: `Contact` for inputs and `Switch` for outputs.
-Means, that for `I` and `NI` blocks `Contact` items must be used. For other blocks simply
-use `Switch`, since they are bidirectional. The configuration pattern for digital channels is:
+### Bridge
+Each device have currently one channel: `rtc`:
+
+```
+channel="plclogo:device:<DeviceId>:rtc"
+```
+
+This channel supports `DateTime` items.
+
+### Digital
+Each digital thing have currently one channel: `state`:
 
 ```
 channel="plclogo:digital:<ThingId>:state"
 ```
 
-Each analog thing have only one channel `value`. Only one item type is supported: `Number`
-The configuration pattern for analog channels is:
+Dependend on configured block type, channel supports one of two different item types: `Contact`
+for inputs and `Switch` for outputs. Means, that for `I` and `NI` blocks `Contact` items must
+be used. For other blocks simply use `Switch`, since they are bidirectional.
+
+### Analog
+Each analog thing have currently one channel: `value`:
 
 ```
 channel="plclogo:digital:<ThingId>:value"
 ```
+
+This channel supports `Number` items.
+
 
 ## Examples
 Configuration of one Siemens LOGO!

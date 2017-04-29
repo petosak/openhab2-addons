@@ -18,5 +18,28 @@ public enum PLCLogoDataType {
     INVALID,
     BIT,
     WORD,
-    DWORD
+    DWORD;
+
+    public static int getBytesCount(final PLCLogoDataType type) {
+        int count = -1;
+        switch (type) {
+            case BIT: {
+                count = 1;
+                break;
+            }
+            case DWORD: {
+                count = 4;
+                break;
+            }
+            case WORD: {
+                count = 2;
+                break;
+            }
+            default:
+            case INVALID: {
+                break;
+            }
+        }
+        return count;
+    }
 }
