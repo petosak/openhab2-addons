@@ -12,11 +12,13 @@ import static org.openhab.binding.plclogo.PLCLogoBindingConstants.*;
 
 import java.util.Collections;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import org.eclipse.smarthome.config.core.Configuration;
 import org.eclipse.smarthome.core.library.types.OnOffType;
 import org.eclipse.smarthome.core.library.types.OpenClosedType;
+import org.eclipse.smarthome.core.thing.Bridge;
 import org.eclipse.smarthome.core.thing.Channel;
 import org.eclipse.smarthome.core.thing.ChannelUID;
 import org.eclipse.smarthome.core.thing.Thing;
@@ -59,25 +61,32 @@ public class PLCDigitalBlockHandler extends PLCBlockHandler {
     public void initialize() {
         config = getConfigAs(PLCLogoDigitalConfiguration.class);
 
+        final Thing thing = getThing();
+        Objects.requireNonNull(thing, "PLCDigitalBlockHandler: Thing may not be null.");
+
+        final Bridge bridge = getBridge();
         final String name = config.getBlockName();
-        if (config.isBlockValid()) {
-            ThingBuilder builder = editThing();
+        if (config.isBlockValid() && (bridge != null)) {
+            ThingBuilder tBuilder = editThing();
 
             String text = config.isInputBlock() ? INPUT : OUTPUT;
             text = text.substring(0, 1).toUpperCase() + text.substring(1);
-            builder = builder.withLabel(getBridge().getLabel() + ": " + text + " " + name);
+            tBuilder = tBuilder.withLabel(bridge.getLabel() + ": " + text + " " + name);
 
-            if (thing.getChannel(DIGITAL_CHANNEL_ID) == null) {
-                final ChannelUID uid = new ChannelUID(getThing().getUID(), DIGITAL_CHANNEL_ID);
-                ChannelBuilder channel = ChannelBuilder.create(uid, config.isInputBlock() ? "Contact" : "Switch");
-                channel = channel.withType(new ChannelTypeUID(BINDING_ID, DIGITAL_CHANNEL_ID));
-                channel = channel.withLabel(name);
-                channel = channel.withDescription("Digital " + text);
-                builder = builder.withChannel(channel.build());
+            final Channel channel = thing.getChannel(DIGITAL_CHANNEL_ID);
+            if (channel != null) {
+                tBuilder.withoutChannel(channel.getUID());
             }
 
+            final ChannelUID uid = new ChannelUID(thing.getUID(), DIGITAL_CHANNEL_ID);
+            ChannelBuilder cBuilder = ChannelBuilder.create(uid, config.isInputBlock() ? "Contact" : "Switch");
+            cBuilder = cBuilder.withType(new ChannelTypeUID(BINDING_ID, DIGITAL_CHANNEL_ID));
+            cBuilder = cBuilder.withLabel(name);
+            cBuilder = cBuilder.withDescription("Digital " + text);
+            tBuilder = tBuilder.withChannel(cBuilder.build());
+
             oldValue = Integer.MAX_VALUE;
-            updateThing(builder.build());
+            updateThing(tBuilder.build());
             super.initialize();
         } else {
             final String message = "Can not initialize LOGO! block. Please check blocks.";
@@ -103,13 +112,16 @@ public class PLCDigitalBlockHandler extends PLCBlockHandler {
     @Override
     public void setData(final byte[] data) {
         if (data.length == 1) {
+            final Channel channel = thing.getChannel(DIGITAL_CHANNEL_ID);
             final boolean value = S7.GetBitAt(data, 0, getBit());
-            logger.debug("Block {} received {}.", getBlockName(), value);
+
+            final String type = channel.getAcceptedItemType();
+            if (logger.isTraceEnabled()) {
+                final String raw = "[" + Integer.toBinaryString((data[0] & 0xFF) + 0x100).substring(1) + "]";
+                logger.trace("Channel {} accepting {} received {}.", channel.getUID(), type, raw);
+            }
 
             if ((oldValue != (value ? 1 : 0)) || config.isUpdateForced()) {
-                final Channel channel = thing.getChannel(DIGITAL_CHANNEL_ID);
-
-                final String type = channel.getAcceptedItemType();
                 if (type.equalsIgnoreCase("Contact")) {
                     updateState(channel.getUID(), value ? OpenClosedType.CLOSED : OpenClosedType.OPEN);
                 } else if (type.equalsIgnoreCase("Switch")) {

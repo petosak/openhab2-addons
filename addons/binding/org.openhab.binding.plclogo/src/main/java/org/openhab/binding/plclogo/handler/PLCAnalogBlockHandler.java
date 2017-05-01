@@ -10,12 +10,15 @@ package org.openhab.binding.plclogo.handler;
 
 import static org.openhab.binding.plclogo.PLCLogoBindingConstants.*;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import org.eclipse.smarthome.config.core.Configuration;
 import org.eclipse.smarthome.core.library.types.DecimalType;
+import org.eclipse.smarthome.core.thing.Bridge;
 import org.eclipse.smarthome.core.thing.Channel;
 import org.eclipse.smarthome.core.thing.ChannelUID;
 import org.eclipse.smarthome.core.thing.Thing;
@@ -61,25 +64,32 @@ public class PLCAnalogBlockHandler extends PLCBlockHandler {
     public void initialize() {
         config = getConfigAs(PLCLogoAnalogConfiguration.class);
 
+        final Thing thing = getThing();
+        Objects.requireNonNull(thing, "PLCAnalogBlockHandler: Thing may not be null.");
+
+        final Bridge bridge = getBridge();
         final String name = config.getBlockName();
-        if (config.isBlockValid()) {
-            ThingBuilder builder = editThing();
+        if (config.isBlockValid() && (bridge != null)) {
+            ThingBuilder tBuilder = editThing();
 
             String text = config.isInputBlock() ? INPUT : OUTPUT;
             text = text.substring(0, 1).toUpperCase() + text.substring(1);
-            builder = builder.withLabel(getBridge().getLabel() + ": " + text + " " + name);
+            tBuilder = tBuilder.withLabel(bridge.getLabel() + ": " + text + " " + name);
 
-            if (thing.getChannel(ANALOG_CHANNEL_ID) == null) {
-                final ChannelUID uid = new ChannelUID(getThing().getUID(), ANALOG_CHANNEL_ID);
-                ChannelBuilder channel = ChannelBuilder.create(uid, "Number");
-                channel = channel.withType(new ChannelTypeUID(BINDING_ID, ANALOG_CHANNEL_ID));
-                channel = channel.withLabel(name);
-                channel = channel.withDescription("Analog " + text);
-                builder = builder.withChannel(channel.build());
+            final Channel channel = thing.getChannel(ANALOG_CHANNEL_ID);
+            if (channel != null) {
+                tBuilder.withoutChannel(channel.getUID());
             }
 
+            final ChannelUID uid = new ChannelUID(thing.getUID(), ANALOG_CHANNEL_ID);
+            ChannelBuilder cBuilder = ChannelBuilder.create(uid, "Number");
+            cBuilder = cBuilder.withType(new ChannelTypeUID(BINDING_ID, ANALOG_CHANNEL_ID));
+            cBuilder = cBuilder.withLabel(name);
+            cBuilder = cBuilder.withDescription("Analog " + text);
+            tBuilder = tBuilder.withChannel(cBuilder.build());
+
             oldValue = Long.MAX_VALUE;
-            updateThing(builder.build());
+            updateThing(tBuilder.build());
             super.initialize();
         } else {
             final String message = "Can not initialize LOGO! block. Please check blocks.";
@@ -105,13 +115,16 @@ public class PLCAnalogBlockHandler extends PLCBlockHandler {
     @Override
     public void setData(final byte[] data) {
         if ((data.length == 2) || (data.length == 4)) {
+            final Channel channel = thing.getChannel(ANALOG_CHANNEL_ID);
             final long value = data.length == 2 ? S7.GetShortAt(data, 0) : S7.GetDWordAt(data, 0);
-            logger.debug("Block {} received {}.", getBlockName(), value);
+
+            final String type = channel.getAcceptedItemType();
+            if (logger.isTraceEnabled()) {
+                final String raw = Arrays.toString(data);
+                logger.trace("Channel {} accepting {} received {}.", channel.getUID(), type, raw);
+            }
 
             if ((Math.abs(oldValue - value) >= config.getThreshold()) || config.isUpdateForced()) {
-                final Channel channel = thing.getChannel(ANALOG_CHANNEL_ID);
-
-                final String type = channel.getAcceptedItemType();
                 if (type.equalsIgnoreCase("Number")) {
                     updateState(channel.getUID(), new DecimalType(value));
                 } else {

@@ -39,7 +39,7 @@ public class PLCLogoAnalogConfiguration extends PLCLogoBlockConfiguration {
      * @param force Force update of Siemens LOGO! device blocks
      */
     public void setThreshold(final Integer threshold) {
-        Objects.requireNonNull(threshold, "Threshold may not be null");
+        Objects.requireNonNull(threshold, "PLCLogoAnalogConfiguration: Threshold may not be null.");
         this.threshold = threshold;
     }
 

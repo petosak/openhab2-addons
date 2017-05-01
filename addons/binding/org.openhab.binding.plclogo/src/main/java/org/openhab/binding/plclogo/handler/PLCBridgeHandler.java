@@ -57,9 +57,7 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
 
     public static final Set<ThingTypeUID> SUPPORTED_THING_TYPES = Collections.singleton(THING_TYPE_DEVICE);
 
-    /**
-     * S7 client this bridge belongs to
-     */
+    // S7 client this bridge belongs to
     private volatile PLCLogoClient client = null;
     private Set<PLCBlockHandler> handlers = new HashSet<PLCBlockHandler>();
     private PLCLogoBridgeConfiguration config = getConfigAs(PLCLogoBridgeConfiguration.class);
@@ -84,6 +82,12 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
                         calendar.set(year * 100 + data[1], data[2] - 1, data[3], data[4], data[5], data[6]);
                         final Channel channel = thing.getChannel(RTC_CHANNEL_ID);
                         updateState(channel.getUID(), new DateTimeType(calendar));
+
+                        if (logger.isTraceEnabled()) {
+                            final String raw = Arrays.toString(data);
+                            final String type = channel.getAcceptedItemType();
+                            logger.trace("Channel {} accepting {} received {}.", channel.getUID(), type, raw);
+                        }
                     } else {
                         logger.error("Can not read diagnostics from LOGO!: {}.", S7Client.ErrorText(result));
                     }

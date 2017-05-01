@@ -41,7 +41,7 @@ public abstract class PLCLogoBlockConfiguration {
      * @param name Siemens LOGO! block name
      */
     public void setBlockName(final String name) {
-        Objects.requireNonNull(name, "Block name may not be null");
+        Objects.requireNonNull(name, "PLCLogoBlockConfiguration: Block name may not be null.");
         this.block = name.trim();
     }
 
@@ -60,7 +60,7 @@ public abstract class PLCLogoBlockConfiguration {
      * @param force Force update of Siemens LOGO! device blocks
      */
     public void setForceUpdate(final Boolean force) {
-        Objects.requireNonNull(force, "Force may not be null");
+        Objects.requireNonNull(force, "PLCLogoBlockConfiguration: Force may not be null.");
         this.force = force;
     }
 
