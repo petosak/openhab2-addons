@@ -11,12 +11,14 @@ package org.openhab.binding.plclogo.handler;
 import static org.openhab.binding.plclogo.PLCLogoBindingConstants.*;
 
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
 import org.eclipse.smarthome.config.core.Configuration;
+import org.eclipse.smarthome.core.library.types.DateTimeType;
 import org.eclipse.smarthome.core.library.types.DecimalType;
 import org.eclipse.smarthome.core.thing.Bridge;
 import org.eclipse.smarthome.core.thing.Channel;
@@ -46,6 +48,11 @@ public class PLCAnalogBlockHandler extends PLCBlockHandler {
     private final Logger logger = LoggerFactory.getLogger(PLCAnalogBlockHandler.class);
 
     public static final Set<ThingTypeUID> SUPPORTED_THING_TYPES = Collections.singleton(THING_TYPE_ANALOG);
+
+    // Possible block directions
+    private static final String DATE_CHANNEL = "date";
+    private static final String TIME_CHANNEL = "time";
+    private static final String NUMBER_CHANNEL = "number";
 
     private PLCLogoAnalogConfiguration config = getConfigAs(PLCLogoAnalogConfiguration.class);
     private long oldValue = Long.MAX_VALUE;
@@ -82,7 +89,8 @@ public class PLCAnalogBlockHandler extends PLCBlockHandler {
             }
 
             final ChannelUID uid = new ChannelUID(thing.getUID(), ANALOG_CHANNEL_ID);
-            ChannelBuilder cBuilder = ChannelBuilder.create(uid, "Number");
+            ChannelBuilder cBuilder = ChannelBuilder.create(uid,
+                    NUMBER_CHANNEL.equalsIgnoreCase(config.getType()) ? "Number" : "DateTime");
             cBuilder = cBuilder.withType(new ChannelTypeUID(BINDING_ID, ANALOG_CHANNEL_ID));
             cBuilder = cBuilder.withLabel(name);
             cBuilder = cBuilder.withDescription("Analog " + text);
@@ -124,9 +132,28 @@ public class PLCAnalogBlockHandler extends PLCBlockHandler {
                 logger.trace("Channel {} accepting {} received {}.", channel.getUID(), type, raw);
             }
 
-            if ((Math.abs(oldValue - value) >= config.getThreshold()) || config.isUpdateForced()) {
+            if ((Math.abs(oldValue - value) > config.getThreshold()) || config.isUpdateForced()) {
                 if (type.equalsIgnoreCase("Number")) {
                     updateState(channel.getUID(), new DecimalType(value));
+                } else if (type.equalsIgnoreCase("DateTime") && (data.length == 2)) {
+                    PLCBridgeHandler bridge = (PLCBridgeHandler) getBridge().getHandler();
+                    Calendar calendar = (Calendar) bridge.getLogoRTC().clone();
+                    calendar.set(Calendar.SECOND, 0);
+                    calendar.set(Calendar.MILLISECOND, 0);
+                    if (TIME_CHANNEL.equalsIgnoreCase(config.getType())) {
+                        if ((value < 0) || (value > 0x2359)) {
+                            logger.warn("Channel {} got garbage time {}.", channel.getUID(), Long.toHexString(value));
+                        }
+                        calendar.set(Calendar.HOUR_OF_DAY, 10 * (data[0] >> 4) + data[0] & 0x0F);
+                        calendar.set(Calendar.MINUTE, 10 * (data[1] >> 4) + data[1] & 0x0F);
+                    } else if (DATE_CHANNEL.equalsIgnoreCase(config.getType())) {
+                        if ((value < 0x0101) || (value > 0x1231)) {
+                            logger.warn("Channel {} got garbage date {}.", channel.getUID(), Long.toHexString(value));
+                        }
+                        calendar.set(Calendar.MONTH, 10 * (data[0] >> 4) + data[0] & 0x0F - 1);
+                        calendar.set(Calendar.DATE, 10 * (data[1] >> 4) + data[1] & 0x0F);
+                    }
+                    updateState(channel.getUID(), new DateTimeType(calendar));
                 } else {
                     logger.warn("Channel {} will not accept {} items.", channel.getUID(), type);
                 }

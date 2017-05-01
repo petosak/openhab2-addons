@@ -62,19 +62,16 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
     private Set<PLCBlockHandler> handlers = new HashSet<PLCBlockHandler>();
     private PLCLogoBridgeConfiguration config = getConfigAs(PLCLogoBridgeConfiguration.class);
 
-    private ScheduledFuture<?> job = null;
-    private final Runnable reader = new Runnable() {
-        // Buffer for block data read operation
-        private final byte[] buffer = new byte[2048];
-
+    private Calendar rtc = Calendar.getInstance();
+    private ScheduledFuture<?> rtcJob = null;
+    private final Runnable rtcReader = new Runnable() {
         // Buffer for diagnostic data
         private final byte[] data = { 0, 0, 0, 0, 0, 0, 0 };
 
         @Override
         public void run() {
             try {
-                final Map<?, Integer> memory = LOGO_MEMORY_BLOCK.get(getLogoFamily());
-                if ((memory != null) && (client != null)) {
+                if (client != null) {
                     int result = client.ReadDBArea(1, LOGO_STATE.intValue(), data.length, S7Client.S7WLByte, data);
                     if (result == 0) {
                         Calendar calendar = Calendar.getInstance();
@@ -82,6 +79,11 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
                         calendar.set(year * 100 + data[1], data[2] - 1, data[3], data[4], data[5], data[6]);
                         final Channel channel = thing.getChannel(RTC_CHANNEL_ID);
                         updateState(channel.getUID(), new DateTimeType(calendar));
+
+                        synchronized (rtc) {
+                            rtc.setTimeZone(calendar.getTimeZone());
+                            rtc.setTimeInMillis(calendar.getTimeInMillis());
+                        }
 
                         if (logger.isTraceEnabled()) {
                             final String raw = Arrays.toString(data);
@@ -91,9 +93,30 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
                     } else {
                         logger.error("Can not read diagnostics from LOGO!: {}.", S7Client.ErrorText(result));
                     }
+                } else {
+                    logger.error("LOGO! client {} is invalid.", client);
+                }
+            } catch (Exception exception) {
+                logger.error("RTC thread got exception: {}.", exception.getMessage());
+            } catch (Error error) {
+                logger.error("RTC thread got error: {}.", error.getMessage());
+                throw error;
+            }
+        }
+    };
 
+    private ScheduledFuture<?> readerJob = null;
+    private final Runnable dataReader = new Runnable() {
+        // Buffer for block data read operation
+        private final byte[] buffer = new byte[2048];
+
+        @Override
+        public void run() {
+            try {
+                final Map<?, Integer> memory = LOGO_MEMORY_BLOCK.get(getLogoFamily());
+                if ((memory != null) && (client != null)) {
                     final Integer size = memory.get("SIZE");
-                    result = client.ReadDBArea(1, 0, size.intValue(), S7Client.S7WLByte, buffer);
+                    int result = client.ReadDBArea(1, 0, size.intValue(), S7Client.S7WLByte, buffer);
                     if (result == 0) {
                         synchronized (handlers) {
                             for (PLCBlockHandler handler : handlers) {
@@ -157,6 +180,11 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
                     final int year = calendar.get(Calendar.YEAR) / 100;
                     calendar.set(year * 100 + buffer[1], buffer[2] - 1, buffer[3], buffer[4], buffer[5], buffer[6]);
                     updateState(channelUID, new DateTimeType(calendar));
+
+                    synchronized (rtc) {
+                        rtc.setTimeZone(calendar.getTimeZone());
+                        rtc.setTimeInMillis(calendar.getTimeInMillis());
+                    }
                 } else {
                     logger.error("Can not read data from LOGO!: {}.", S7Client.ErrorText(result));
                 }
@@ -242,11 +270,15 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
         }
 
         if (configured) {
-            if (job == null) {
-                final String host = config.getAddress();
+            final String host = config.getAddress();
+            if (readerJob == null) {
                 final Integer interval = config.getRefreshRate();
                 logger.info("Creating new reader job for {} with interval {} ms.", host, interval.toString());
-                job = scheduler.scheduleWithFixedDelay(reader, 100, interval, TimeUnit.MILLISECONDS);
+                readerJob = scheduler.scheduleWithFixedDelay(dataReader, 100, interval, TimeUnit.MILLISECONDS);
+            }
+            if (rtcJob == null) {
+                logger.info("Creating new RTC job for {} with interval 1 s.", host);
+                rtcJob = scheduler.scheduleAtFixedRate(rtcReader, 150, 1, TimeUnit.SECONDS);
             }
             super.initialize();
         } else {
@@ -264,9 +296,9 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
         logger.debug("Dispose LOGO! bridge handler.");
         super.dispose();
 
-        if (job != null) {
-            job.cancel(false);
-            while (!job.isDone()) {
+        if (rtcJob != null) {
+            rtcJob.cancel(false);
+            while (!rtcJob.isDone()) {
                 try {
                     Thread.sleep(100);
                 } catch (InterruptedException exception) {
@@ -274,7 +306,21 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
                     break;
                 }
             }
-            job = null;
+            rtcJob = null;
+            logger.info("Destroy RTC job for {}.", config.getAddress());
+        }
+
+        if (readerJob != null) {
+            readerJob.cancel(false);
+            while (!readerJob.isDone()) {
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException exception) {
+                    logger.error("Dispose LOGO! bridge handler throw an error: {}.", exception.getMessage());
+                    break;
+                }
+            }
+            readerJob = null;
             logger.info("Destroy reader job for {}.", config.getAddress());
         }
 
@@ -330,6 +376,15 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
      */
     public String getLogoFamily() {
         return config.getFamily();
+    }
+
+    /**
+     * Returns RTC was fetched last from Siemens LOGO!.
+     *
+     * @return Siemens LOGO! RTC
+     */
+    public Calendar getLogoRTC() {
+        return rtc;
     }
 
     /**

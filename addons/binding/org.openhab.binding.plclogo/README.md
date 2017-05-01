@@ -62,14 +62,20 @@ Follow block names are allowed for digital things:
 The configuration pattern for analog things is as follow
 
 ```
-Thing plclogo:analog:<ThingId> [ block="<name>", threshold=<number>, force=<true/false> ]
+Thing plclogo:analog:<ThingId> [ block="<name>", threshold=<number>, force=<true/false>, type="<number/date/time>" ]
 ```
 
 | Parameter | Type    | Required   | Default   | Description                                                   |
 | --------- | :-----: | :--------: | :-------: | ------------------------------------------------------------- |
 | block     | String  | Yes        |           | Block name                                                    |
-| threshold | Integer | No         | false     | Send current value to openHAB, if changed more than threshold |
+| threshold | Integer | No         | 0         | Send current value to openHAB, if changed more than threshold |
 | force     | Boolean | No         | false     | Send current value to openHAB, independent if changed or not  |
+| type      | String  | No         | "number"  | Configure how to interpret data fetched from LOGO! device     |
+
+If parameter `type` is `"number"`, incomig data will be interpret as numeric value. In this case, the appropriate
+channel must be linked to an `Number` item. Is `type` set to `"date"`, then the binding will try to interpret
+incomig data as calendar date. If `type` is set to `"time"`, then incoming data will be tried to interpret as
+time of day. For both `"date"` and `"time"` types, the appropriate channel must be linked to an `DateTime` item.
 
 Follow block names are allowed for analog things:
 
@@ -91,7 +97,7 @@ Each device have currently one channel `rtc`:
 channel="plclogo:device:<DeviceId>:rtc"
 ```
 
-This channel supports `DateTime` items.
+This channel supports `DateTime` items only.
 
 ### Digital
 Each digital thing have currently one channel `state`:
@@ -111,7 +117,7 @@ Each analog thing have currently one channel `value`:
 channel="plclogo:digital:<ThingId>:value"
 ```
 
-This channel supports `Number` items.
+This channel supports `Number` or `DateTime` items dependend on thing configuration.
 
 
 ## Examples
@@ -128,7 +134,8 @@ Bridge plclogo:device:Logo [ address="192.168.0.1", family="0BA8", localTSAP="0x
   Thing plclogo:digital:NI2   [ block="NI2" ]
   Thing plclogo:digital:Q1    [ block="Q1" ]
   Thing plclogo:digital:Q2    [ block="Q2" ]
-  Thing plclogo:analog:VW100  [ block="VW100", threshold=1 ]
+  Thing plclogo:analog:VW100  [ block="VW100", threshold=1, force=true ]
+  Thing plclogo:analog:VW102  [ block="VW102", type="time" ]
 }
 ```
 

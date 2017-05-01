@@ -19,6 +19,7 @@ import java.util.Objects;
 public class PLCLogoAnalogConfiguration extends PLCLogoBlockConfiguration {
 
     private Integer threshold = 0;
+    private String type = null;
 
     public PLCLogoAnalogConfiguration() {
         super();
@@ -41,6 +42,25 @@ public class PLCLogoAnalogConfiguration extends PLCLogoBlockConfiguration {
     public void setThreshold(final Integer threshold) {
         Objects.requireNonNull(threshold, "PLCLogoAnalogConfiguration: Threshold may not be null.");
         this.threshold = threshold;
+    }
+
+    /**
+     * Get configured item type for channel.
+     *
+     * @return Configured item type
+     */
+    public String getType() {
+        return type;
+    }
+
+    /**
+     * Set item type for channel.
+     *
+     * @param type Item type to configure
+     */
+    public void setType(final String type) {
+        Objects.requireNonNull(threshold, "PLCLogoAnalogConfiguration: Type may not be null.");
+        this.type = type;
     }
 
     /**
