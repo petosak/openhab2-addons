@@ -92,14 +92,6 @@ public class HomematicBridgeHandler extends BaseBridgeHandler implements Homemat
     }
 
     /**
-     * {@inheritDoc}
-     */
-    @Override
-    protected synchronized void updateStatus(ThingStatus status) {
-        super.updateStatus(status);
-    }
-
-    /**
      * Schedules a reinitialization, if the Homematic gateway is not reachable at bridge startup.
      */
     private void scheduleReinitialize() {
