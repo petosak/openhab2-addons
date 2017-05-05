@@ -20,6 +20,7 @@ import org.eclipse.smarthome.core.thing.Thing;
 import org.eclipse.smarthome.core.thing.ThingStatus;
 import org.eclipse.smarthome.core.thing.ThingStatusDetail;
 import org.eclipse.smarthome.core.thing.binding.BaseBridgeHandler;
+import org.eclipse.smarthome.core.thing.binding.ThingHandler;
 import org.eclipse.smarthome.core.types.Command;
 import org.eclipse.smarthome.core.types.RefreshType;
 import org.openhab.binding.homematic.discovery.HomematicDeviceDiscoveryService;
@@ -65,36 +66,37 @@ public class HomematicBridgeHandler extends BaseBridgeHandler implements Homemat
     public void initialize() {
         config = createHomematicConfig();
         registerDeviceDiscoveryService();
-        final HomematicBridgeHandler instance = this;
-        scheduler.execute(new Runnable() {
 
-            @Override
-            public void run() {
+        try {
+            String id = getThing().getUID().getId();
+            gateway = HomematicGatewayFactory.createGateway(id, config, this);
+            gateway.initialize();
+
+            discoveryService.startScan(null);
+            discoveryService.waitForScanFinishing();
+            super.initialize();
+
+            if (!config.getGatewayInfo().isHomegear()) {
                 try {
-                    String id = getThing().getUID().getId();
-                    gateway = HomematicGatewayFactory.createGateway(id, config, instance);
-                    gateway.initialize();
-
-                    discoveryService.startScan(null);
-                    discoveryService.waitForScanFinishing();
-                    updateStatus(ThingStatus.ONLINE);
-                    if (!config.getGatewayInfo().isHomegear()) {
-                        try {
-                            gateway.loadRssiValues();
-                        } catch (IOException ex) {
-                            logger.warn("Unable to load RSSI values from bridge '{}'", getThing().getUID().getId());
-                            logger.error("{}", ex.getMessage(), ex);
-                        }
-                    }
-
+                    gateway.loadRssiValues();
                 } catch (IOException ex) {
-                    updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.COMMUNICATION_ERROR, ex.getMessage());
-                    dispose();
-                    scheduleReinitialize();
+                    logger.warn("Unable to load RSSI values from bridge '{}'", getThing().getUID().getId());
+                    logger.error("{}", ex.getMessage(), ex);
                 }
             }
-        });
+        } catch (IOException ex) {
+            updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.COMMUNICATION_ERROR, ex.getMessage());
+            dispose();
+            scheduleReinitialize();
+        }
+    }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected synchronized void updateStatus(ThingStatus status) {
+        super.updateStatus(status);
     }
 
     /**
@@ -166,9 +168,8 @@ public class HomematicBridgeHandler extends BaseBridgeHandler implements Homemat
             try {
                 gateway.getDevice(UidUtils.getHomematicAddress(hmThing));
             } catch (HomematicClientException e) {
-                if (hmThing.getHandler() != null) {
-                    ((HomematicThingHandler) hmThing.getHandler()).updateStatus(ThingStatus.OFFLINE);
-                }
+                final ThingHandler handler = hmThing.getHandler();
+                handler.dispose();
             }
         }
     }
