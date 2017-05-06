@@ -37,6 +37,13 @@ public class PLCLogoBindingConstants {
     public static final String DIGITAL_CHANNEL_ID = "state";
     public static final String RTC_CHANNEL_ID = "rtc";
 
+    // List of all Channel configurations
+    public static final String INPUT_CHANNEL = "input";
+    public static final String OUTPUT_CHANNEL = "output";
+    public static final String ANALOG_DATE_CHANNEL = "date";
+    public static final String ANALOG_TIME_CHANNEL = "time";
+    public static final String ANALOG_NUMBER_CHANNEL = "number";
+
     // LOGO! family definitions
     public static final String LOGO_0BA7 = "0BA7";
     public static final String LOGO_0BA8 = "0BA8";

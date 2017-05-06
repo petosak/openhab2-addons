@@ -74,16 +74,13 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
                 if (client != null) {
                     int result = client.ReadDBArea(1, LOGO_STATE.intValue(), data.length, S7Client.S7WLByte, data);
                     if (result == 0) {
-                        Calendar calendar = Calendar.getInstance();
-                        final int year = calendar.get(Calendar.YEAR) / 100;
-                        calendar.set(year * 100 + data[1], data[2] - 1, data[3], data[4], data[5], data[6]);
-                        final Channel channel = thing.getChannel(RTC_CHANNEL_ID);
-                        updateState(channel.getUID(), new DateTimeType(calendar));
-
+                        final Calendar calendar = PLCLogoDataType.getRtcAt(data, 1);
                         synchronized (rtc) {
                             rtc.setTimeZone(calendar.getTimeZone());
                             rtc.setTimeInMillis(calendar.getTimeInMillis());
                         }
+                        final Channel channel = thing.getChannel(RTC_CHANNEL_ID);
+                        updateState(channel.getUID(), new DateTimeType(rtc));
 
                         if (logger.isTraceEnabled()) {
                             final String raw = Arrays.toString(data);
@@ -176,15 +173,12 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
                 byte[] buffer = { 0, 0, 0, 0, 0, 0, 0 };
                 int result = client.ReadDBArea(1, LOGO_STATE.intValue(), buffer.length, S7Client.S7WLByte, buffer);
                 if (result == 0) {
-                    Calendar calendar = Calendar.getInstance();
-                    final int year = calendar.get(Calendar.YEAR) / 100;
-                    calendar.set(year * 100 + buffer[1], buffer[2] - 1, buffer[3], buffer[4], buffer[5], buffer[6]);
-                    updateState(channelUID, new DateTimeType(calendar));
-
+                    final Calendar calendar = PLCLogoDataType.getRtcAt(buffer, 1);
                     synchronized (rtc) {
                         rtc.setTimeZone(calendar.getTimeZone());
                         rtc.setTimeInMillis(calendar.getTimeInMillis());
                     }
+                    updateState(channelUID, new DateTimeType(rtc));
                 } else {
                     logger.error("Can not read data from LOGO!: {}.", S7Client.ErrorText(result));
                 }
@@ -239,6 +233,31 @@ public class PLCBridgeHandler extends BaseBridgeHandler {
                     final DecimalType state = (DecimalType) command;
                     S7.SetDWordAt(buffer, 0, state.longValue());
                 }
+                int result = client.WriteDBArea(1, bHandler.getAddress(), buffer.length, S7Client.S7WLByte, buffer);
+                if (result != 0) {
+                    logger.error("Can not write data to LOGO!: {}.", S7Client.ErrorText(result));
+                }
+            } else {
+                logger.warn("Can not update not supported channel: {}.", channelUID);
+            }
+        } else if (handler instanceof PLCAnalogBlockHandler && command instanceof DateTimeType) {
+            final PLCAnalogBlockHandler bHandler = (PLCAnalogBlockHandler) handler;
+            final int offset = PLCLogoDataType.getBytesCount(bHandler.getBlockDataType());
+            if ((offset == 2) && ANALOG_CHANNEL_ID.equals(channelId)) {
+                final String type = bHandler.getChannelType();
+                final byte[] buffer = new byte[offset];
+                if (ANALOG_TIME_CHANNEL.equalsIgnoreCase(type)) {
+                    final DateTimeType state = (DateTimeType) command;
+                    final Calendar calendar = state.getCalendar();
+                    buffer[0] = S7.ByteToBCD(calendar.get(Calendar.HOUR_OF_DAY));
+                    buffer[1] = S7.ByteToBCD(calendar.get(Calendar.MINUTE));
+                } else if (ANALOG_DATE_CHANNEL.equalsIgnoreCase(type)) {
+                    final DateTimeType state = (DateTimeType) command;
+                    final Calendar calendar = state.getCalendar();
+                    buffer[0] = S7.ByteToBCD(calendar.get(Calendar.MONTH) + 1);
+                    buffer[1] = S7.ByteToBCD(calendar.get(Calendar.DATE));
+                }
+
                 int result = client.WriteDBArea(1, bHandler.getAddress(), buffer.length, S7Client.S7WLByte, buffer);
                 if (result != 0) {
                     logger.error("Can not write data to LOGO!: {}.", S7Client.ErrorText(result));

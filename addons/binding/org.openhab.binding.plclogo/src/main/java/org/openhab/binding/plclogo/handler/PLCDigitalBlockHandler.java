@@ -69,7 +69,7 @@ public class PLCDigitalBlockHandler extends PLCBlockHandler {
         if (config.isBlockValid() && (bridge != null)) {
             ThingBuilder tBuilder = editThing();
 
-            String text = config.isInputBlock() ? INPUT : OUTPUT;
+            String text = config.isInputBlock() ? INPUT_CHANNEL : OUTPUT_CHANNEL;
             text = text.substring(0, 1).toUpperCase() + text.substring(1);
             tBuilder = tBuilder.withLabel(bridge.getLabel() + ": " + text + " " + name);
 

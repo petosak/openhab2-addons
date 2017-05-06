@@ -30,6 +30,7 @@ import org.eclipse.smarthome.core.thing.ThingTypeUID;
 import org.eclipse.smarthome.core.thing.binding.builder.ChannelBuilder;
 import org.eclipse.smarthome.core.thing.binding.builder.ThingBuilder;
 import org.eclipse.smarthome.core.thing.type.ChannelTypeUID;
+import org.openhab.binding.plclogo.PLCLogoBindingConstants;
 import org.openhab.binding.plclogo.config.PLCLogoAnalogConfiguration;
 import org.openhab.binding.plclogo.internal.PLCLogoDataType;
 import org.slf4j.Logger;
@@ -48,11 +49,6 @@ public class PLCAnalogBlockHandler extends PLCBlockHandler {
     private final Logger logger = LoggerFactory.getLogger(PLCAnalogBlockHandler.class);
 
     public static final Set<ThingTypeUID> SUPPORTED_THING_TYPES = Collections.singleton(THING_TYPE_ANALOG);
-
-    // Possible block directions
-    private static final String DATE_CHANNEL = "date";
-    private static final String TIME_CHANNEL = "time";
-    private static final String NUMBER_CHANNEL = "number";
 
     private PLCLogoAnalogConfiguration config = getConfigAs(PLCLogoAnalogConfiguration.class);
     private long oldValue = Long.MAX_VALUE;
@@ -79,7 +75,7 @@ public class PLCAnalogBlockHandler extends PLCBlockHandler {
         if (config.isBlockValid() && (bridge != null)) {
             ThingBuilder tBuilder = editThing();
 
-            String text = config.isInputBlock() ? INPUT : OUTPUT;
+            String text = config.isInputBlock() ? INPUT_CHANNEL : OUTPUT_CHANNEL;
             text = text.substring(0, 1).toUpperCase() + text.substring(1);
             tBuilder = tBuilder.withLabel(bridge.getLabel() + ": " + text + " " + name);
 
@@ -88,9 +84,9 @@ public class PLCAnalogBlockHandler extends PLCBlockHandler {
                 tBuilder.withoutChannel(channel.getUID());
             }
 
+            final boolean isNumber = ANALOG_NUMBER_CHANNEL.equalsIgnoreCase(config.getType());
             final ChannelUID uid = new ChannelUID(thing.getUID(), ANALOG_CHANNEL_ID);
-            ChannelBuilder cBuilder = ChannelBuilder.create(uid,
-                    NUMBER_CHANNEL.equalsIgnoreCase(config.getType()) ? "Number" : "DateTime");
+            ChannelBuilder cBuilder = ChannelBuilder.create(uid, isNumber ? "Number" : "DateTime");
             cBuilder = cBuilder.withType(new ChannelTypeUID(BINDING_ID, ANALOG_CHANNEL_ID));
             cBuilder = cBuilder.withLabel(name);
             cBuilder = cBuilder.withDescription("Analog " + text);
@@ -138,20 +134,19 @@ public class PLCAnalogBlockHandler extends PLCBlockHandler {
                 } else if (type.equalsIgnoreCase("DateTime") && (data.length == 2)) {
                     PLCBridgeHandler bridge = (PLCBridgeHandler) getBridge().getHandler();
                     Calendar calendar = (Calendar) bridge.getLogoRTC().clone();
-                    calendar.set(Calendar.SECOND, 0);
                     calendar.set(Calendar.MILLISECOND, 0);
-                    if (TIME_CHANNEL.equalsIgnoreCase(config.getType())) {
+                    if (ANALOG_TIME_CHANNEL.equalsIgnoreCase(config.getType())) {
                         if ((value < 0) || (value > 0x2359)) {
                             logger.warn("Channel {} got garbage time {}.", channel.getUID(), Long.toHexString(value));
                         }
-                        calendar.set(Calendar.HOUR_OF_DAY, 10 * (data[0] >> 4) + data[0] & 0x0F);
-                        calendar.set(Calendar.MINUTE, 10 * (data[1] >> 4) + data[1] & 0x0F);
-                    } else if (DATE_CHANNEL.equalsIgnoreCase(config.getType())) {
+                        calendar.set(Calendar.HOUR_OF_DAY, S7.BCDtoByte(data[0]));
+                        calendar.set(Calendar.MINUTE, S7.BCDtoByte(data[1]));
+                    } else if (ANALOG_DATE_CHANNEL.equalsIgnoreCase(config.getType())) {
                         if ((value < 0x0101) || (value > 0x1231)) {
                             logger.warn("Channel {} got garbage date {}.", channel.getUID(), Long.toHexString(value));
                         }
-                        calendar.set(Calendar.MONTH, 10 * (data[0] >> 4) + data[0] & 0x0F - 1);
-                        calendar.set(Calendar.DATE, 10 * (data[1] >> 4) + data[1] & 0x0F);
+                        calendar.set(Calendar.MONTH, S7.BCDtoByte(data[0]) - 1);
+                        calendar.set(Calendar.DATE, S7.BCDtoByte(data[1]));
                     }
                     updateState(channel.getUID(), new DateTimeType(calendar));
                 } else {
@@ -184,6 +179,18 @@ public class PLCAnalogBlockHandler extends PLCBlockHandler {
             return kind.equalsIgnoreCase("VD") ? PLCLogoDataType.DWORD : PLCLogoDataType.WORD;
         }
         return PLCLogoDataType.INVALID;
+    }
+
+    /**
+     * Returns configured channel type for configured block.
+     *
+     * @see PLCLogoBindingConstants#ANALOG_DATE_CHANNEL
+     * @see PLCLogoBindingConstants#ANALOG_TIME_CHANNEL
+     * @see PLCLogoBindingConstants#ANALOG_NUMBER_CHANNEL
+     * @return Configured channel type
+     */
+    public String getChannelType() {
+        return config.getType();
     }
 
     /**

@@ -38,10 +38,6 @@ public abstract class PLCBlockHandler extends BaseThingHandler {
     private int address = -1;
     private int bit = -1;
 
-    // Possible block directions
-    protected static final String INPUT = "Input";
-    protected static final String OUTPUT = "Output";
-
     /**
      * {@inheritDoc}
      */
