@@ -267,7 +267,7 @@ public class HomematicBridgeHandler extends BaseBridgeHandler implements Homemat
         final HmChannel hmChannel = dp.getChannel();
         if (hmChannel != null) {
             Thing hmThing = getThingByUID(UidUtils.generateThingUID(hmChannel.getDevice(), getThing()));
-            if (hmThing instanceof HomematicThingHandler) {
+            if (hmThing.getHandler() instanceof HomematicThingHandler) {
                 HomematicThingHandler thingHandler = (HomematicThingHandler) hmThing.getHandler();
                 thingHandler.updateDatapointState(dp);
             }
